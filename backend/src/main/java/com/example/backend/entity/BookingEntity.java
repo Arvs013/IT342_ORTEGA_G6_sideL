@@ -23,7 +23,25 @@ public class BookingEntity {
     @Column(name = "booking_date", nullable = false)
     private LocalDateTime bookingDate;
 
-    // Statuses: "PENDING", "ACCEPTED", "REJECTED", "COMPLETED", "CANCELLED"
+    @Column(name = "contact_name")
+    private String contactName;
+
+    @Column(name = "contact_email")
+    private String contactEmail;
+
+    @Column(name = "contact_phone")
+    private String contactPhone;
+
+    @Column(name = "service_address")
+    private String serviceAddress;
+
+    @Column(name = "client_notes", columnDefinition = "TEXT")
+    private String clientNotes;
+
+    @Column(name = "receipt_url")
+    private String receiptUrl;
+
+    // Statuses: "PENDING", "ACCEPTED", "IN_PROGRESS", "REJECTED", "COMPLETED", "CANCELLED"
     @Column(nullable = false, length = 20)
     private String status = "PENDING";
 
@@ -43,6 +61,24 @@ public class BookingEntity {
 
     public LocalDateTime getBookingDate() { return bookingDate; }
     public void setBookingDate(LocalDateTime bookingDate) { this.bookingDate = bookingDate; }
+
+    public String getContactName() { return contactName; }
+    public void setContactName(String contactName) { this.contactName = contactName; }
+
+    public String getContactEmail() { return contactEmail; }
+    public void setContactEmail(String contactEmail) { this.contactEmail = contactEmail; }
+
+    public String getContactPhone() { return contactPhone; }
+    public void setContactPhone(String contactPhone) { this.contactPhone = contactPhone; }
+
+    public String getServiceAddress() { return serviceAddress; }
+    public void setServiceAddress(String serviceAddress) { this.serviceAddress = serviceAddress; }
+
+    public String getClientNotes() { return clientNotes; }
+    public void setClientNotes(String clientNotes) { this.clientNotes = clientNotes; }
+
+    public String getReceiptUrl() { return receiptUrl; }
+    public void setReceiptUrl(String receiptUrl) { this.receiptUrl = receiptUrl; }
 
     public String getStatus() { return status; }
     public void setStatus(String status) { this.status = status; }

@@ -4,75 +4,103 @@ import DashboardHeader from "./DashboardHeader";
 import "../styles/dashboard.css";
 
 const API_BASE_URL = "http://localhost:8080/api";
+const API_ORIGIN = API_BASE_URL.replace("/api", "");
 
 const categories = [
   "ALL",
-  "PLUMBING",
-  "ELECTRONICS",
-  "APPLIANCES",
-  "GADGETS",
-  "MOTORCYCLE",
-  "CAR",
+  "Electrical",
+  "Plumbing",
+  "Home Cleaning",
+  "Appliance Repair",
+  "Electronics Repair",
+  "Gadget Repair",
+  "Motorcycle Mechanic",
+  "Car Mechanic",
+  "HVAC",
+  "Handyman",
+  "Landscaping",
+  "Pest Control",
+  "Pool Maintenance",
+  "Window Cleaning",
+  "Carpet Cleaning",
 ];
-
-const bookingStatuses = ["ACCEPTED", "REJECTED", "COMPLETED", "CANCELLED"];
 
 const emptyProviderForm = {
   title: "",
   description: "",
   image: "",
-  category: "PLUMBING",
+  category: "Electrical",
   address: "",
   email: "",
   requirements: "",
 };
+
+const emptyGigForm = {
+  title: "",
+  description: "",
+  price: "",
+  category: "Electrical",
+  imageUrls: "",
+};
+
+const bookingStatuses = ["ACCEPTED", "IN_PROGRESS", "COMPLETED", "REJECTED", "CANCELLED"];
+
+const normalizeCategory = (category = "") =>
+  category.toString().trim().toUpperCase().replace(/[\s-]+/g, "_");
+
+const getGigImages = (gig) => {
+  const rawImages = gig?.imageUrls || gig?.image || "";
+  if (!rawImages) return [];
+
+  return rawImages
+    .split(/[\n,;]+/)
+    .map((image) => image.trim())
+    .filter(Boolean)
+    .slice(0, 5);
+};
+
+const getImageSource = (image) =>
+  image.startsWith("/uploads/") ? `${API_ORIGIN}${image}` : image;
 
 const Dashboard = () => {
   const navigate = useNavigate();
   const [user, setUser] = useState(null);
   const [gigs, setGigs] = useState([]);
   const [myGigs, setMyGigs] = useState([]);
-  const [myBookings, setMyBookings] = useState([]);
   const [providerJobs, setProviderJobs] = useState([]);
-  const [applicants, setApplicants] = useState([]);
+  const [reviewsByGig, setReviewsByGig] = useState({});
+  const [likedGigs, setLikedGigs] = useState({});
+  const [imageIndexes, setImageIndexes] = useState({});
+  const [selectedGig, setSelectedGig] = useState(null);
   const [selectedCategory, setSelectedCategory] = useState("ALL");
   const [searchTerm, setSearchTerm] = useState("");
-  const [bookingDate, setBookingDate] = useState("");
+  const [bookingGig, setBookingGig] = useState(null);
+  const [bookingForm, setBookingForm] = useState({
+    bookingDate: "",
+    firstname: "",
+    lastname: "",
+    email: "",
+    phoneNumber: "",
+    address: "",
+    notes: "",
+  });
   const [activeMessage, setActiveMessage] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(true);
   const [showProviderForm, setShowProviderForm] = useState(false);
   const [providerForm, setProviderForm] = useState(emptyProviderForm);
-  const [gigForm, setGigForm] = useState({
-    title: "",
-    description: "",
-    price: "",
-    category: "PLUMBING",
+  const [providerImageFiles, setProviderImageFiles] = useState([]);
+  const [showGigForm, setShowGigForm] = useState(false);
+  const [editingGig, setEditingGig] = useState(null);
+  const [gigForm, setGigForm] = useState(emptyGigForm);
+  const [gigImageFiles, setGigImageFiles] = useState([]);
+  const [reviewForm, setReviewForm] = useState({
+    rating: 5,
+    comment: "",
   });
 
   const isProvider = Boolean(user?.isProvider);
   const isAdmin = Boolean(user?.isAdmin);
-
-  const visibleGigs = useMemo(() => {
-    const normalizedSearch = searchTerm.trim().toLowerCase();
-
-    return gigs.filter((gig) => {
-      const matchesCategory = selectedCategory === "ALL" || gig.category === selectedCategory;
-      const searchableText = [
-        gig.title,
-        gig.description,
-        gig.category,
-        gig.provider?.firstname,
-        gig.provider?.lastname,
-      ]
-        .filter(Boolean)
-        .join(" ")
-        .toLowerCase();
-
-      return matchesCategory && (!normalizedSearch || searchableText.includes(normalizedSearch));
-    });
-  }, [gigs, selectedCategory, searchTerm]);
-
   const providerStatusLabel = user?.providerStatus || "NONE";
 
   const request = useCallback(async (path, options = {}) => {
@@ -96,6 +124,78 @@ const Dashboard = () => {
     return data;
   }, []);
 
+  const uploadImages = useCallback(async (files) => {
+    if (!files.length) return [];
+
+    const formData = new FormData();
+    files.forEach((file) => formData.append("images", file));
+
+    const response = await fetch(`${API_BASE_URL}/uploads/images`, {
+      method: "POST",
+      body: formData,
+    });
+
+    const contentType = response.headers.get("content-type") || "";
+    const data = contentType.includes("application/json")
+      ? await response.json()
+      : await response.text();
+
+    if (!response.ok) {
+      throw new Error(typeof data === "string" ? data : data.message || "Upload failed");
+    }
+
+    return data;
+  }, []);
+
+  const getGigReviews = useCallback(
+    (gigId) => reviewsByGig[gigId] || [],
+    [reviewsByGig]
+  );
+
+  const getAverageRating = useCallback(
+    (gigId) => {
+      const reviews = getGigReviews(gigId);
+      if (!reviews.length) return null;
+
+      const total = reviews.reduce((sum, review) => sum + Number(review.rating || 0), 0);
+      return (total / reviews.length).toFixed(1);
+    },
+    [getGigReviews]
+  );
+
+  const visibleGigs = useMemo(() => {
+    const normalizedSearch = searchTerm.trim().toLowerCase();
+
+    return gigs.filter((gig) => {
+      const matchesCategory =
+        selectedCategory === "ALL" ||
+        normalizeCategory(gig.category) === normalizeCategory(selectedCategory);
+      const searchableText = [
+        gig.title,
+        gig.description,
+        gig.category,
+        gig.provider?.firstname,
+        gig.provider?.lastname,
+      ]
+        .filter(Boolean)
+        .join(" ")
+        .toLowerCase();
+
+      return matchesCategory && (!normalizedSearch || searchableText.includes(normalizedSearch));
+    });
+  }, [gigs, selectedCategory, searchTerm]);
+
+  const loadReviewsForGigs = useCallback(async (allGigs) => {
+    const reviewEntries = await Promise.all(
+      allGigs.map(async (gig) => {
+        const reviews = await request(`/reviews/gig/${gig.gigID}`);
+        return [gig.gigID, reviews];
+      })
+    );
+
+    setReviewsByGig(Object.fromEntries(reviewEntries));
+  }, [request]);
+
   const refreshUser = useCallback(async (userId) => {
     const freshUser = await request(`/users/${userId}`);
     setUser(freshUser);
@@ -111,36 +211,26 @@ const Dashboard = () => {
 
     try {
       const freshUser = await refreshUser(currentUser.userID);
-      const allGigs = await request("/gigs");
-      const clientBookings = await request(`/bookings/client/${freshUser.userID}`);
-
+      const allGigs = await request("/services");
       setGigs(allGigs);
-      setMyBookings(clientBookings);
-
       if (freshUser.isProvider) {
-        const [postedGigs, jobs] = await Promise.all([
+        const [providerGigs, incomingJobs] = await Promise.all([
           request(`/gigs/provider/${freshUser.userID}`),
           request(`/bookings/provider/${freshUser.userID}`),
         ]);
-        setMyGigs(postedGigs);
-        setProviderJobs(jobs);
+        setMyGigs(providerGigs);
+        setProviderJobs(incomingJobs);
       } else {
         setMyGigs([]);
         setProviderJobs([]);
       }
-
-      if (freshUser.isAdmin) {
-        const pendingApplicants = await request("/admin/applicants");
-        setApplicants(pendingApplicants);
-      } else {
-        setApplicants([]);
-      }
+      await loadReviewsForGigs(allGigs);
     } catch (err) {
       setError(err.message || "Could not load dashboard.");
     } finally {
       setLoading(false);
     }
-  }, [refreshUser, request]);
+  }, [loadReviewsForGigs, refreshUser, request]);
 
   useEffect(() => {
     const savedUser = localStorage.getItem("loggedUser");
@@ -151,12 +241,154 @@ const Dashboard = () => {
 
     const parsedUser = JSON.parse(savedUser);
     setUser(parsedUser);
+    setLikedGigs(JSON.parse(localStorage.getItem("likedGigs") || "{}"));
     loadDashboard(parsedUser);
   }, [loadDashboard]);
 
   const handleLogout = () => {
     localStorage.removeItem("loggedUser");
     navigate("/login");
+  };
+
+  const toggleLike = (gigId) => {
+    const nextLikes = {
+      ...likedGigs,
+      [gigId]: !likedGigs[gigId],
+    };
+
+    setLikedGigs(nextLikes);
+    localStorage.setItem("likedGigs", JSON.stringify(nextLikes));
+  };
+
+  const changeGigImage = (gigId, imageCount, direction) => {
+    if (imageCount <= 1) return;
+
+    setImageIndexes((current) => {
+      const currentIndex = current[gigId] || 0;
+      const nextIndex = (currentIndex + direction + imageCount) % imageCount;
+      return {
+        ...current,
+        [gigId]: nextIndex,
+      };
+    });
+  };
+
+  const emptyBookingForm = {
+    bookingDate: "",
+    firstname: "",
+    lastname: "",
+    email: "",
+    phoneNumber: "",
+    address: "",
+    notes: "",
+  };
+
+  const openBookingModal = (gig) => {
+    setError("");
+    setActiveMessage("");
+    setBookingGig(gig);
+    setBookingForm({
+      bookingDate: "",
+      firstname: user?.firstname || "",
+      lastname: user?.lastname || "",
+      email: user?.email || "",
+      phoneNumber: user?.phoneNumber || "",
+      address: user?.address || "",
+      notes: "",
+    });
+  };
+
+  const closeBookingModal = () => {
+    setBookingGig(null);
+    setBookingForm(emptyBookingForm);
+  };
+
+  const openCreateGigForm = () => {
+    setEditingGig(null);
+    setGigForm(emptyGigForm);
+    setGigImageFiles([]);
+    setShowGigForm(true);
+    setError("");
+    setActiveMessage("");
+  };
+
+  const openEditGigForm = (gig) => {
+    setEditingGig(gig);
+    setGigForm({
+      title: gig.title || "",
+      description: gig.description || "",
+      price: gig.price || "",
+      category: gig.category || "Electrical",
+      imageUrls: gig.imageUrls || "",
+    });
+    setGigImageFiles([]);
+    setShowGigForm(true);
+    setError("");
+    setActiveMessage("");
+  };
+
+  const closeGigForm = () => {
+    setEditingGig(null);
+    setGigForm(emptyGigForm);
+    setGigImageFiles([]);
+    setShowGigForm(false);
+  };
+
+  const submitGig = async (event) => {
+    event.preventDefault();
+
+    if (!user?.userID) return;
+
+    if (!gigForm.title || !gigForm.description || !gigForm.price || !gigForm.category) {
+      setError("Please complete the gig title, description, price, and category.");
+      return;
+    }
+
+    if (gigImageFiles.length > 5) {
+      setError("Please upload only up to 5 images for this gig.");
+      return;
+    }
+
+    try {
+      setActiveMessage("");
+      setError("");
+      const uploadedImages = gigImageFiles.length ? await uploadImages(gigImageFiles) : null;
+      const imageUrls = uploadedImages ? uploadedImages.join("\n") : gigForm.imageUrls;
+      const path = editingGig
+        ? `/gigs/${editingGig.gigID}/provider/${user.userID}`
+        : `/gigs/create/${user.userID}`;
+
+      await request(path, {
+        method: editingGig ? "PUT" : "POST",
+        body: JSON.stringify({
+          title: gigForm.title,
+          description: gigForm.description,
+          price: Number(gigForm.price),
+          category: gigForm.category,
+          imageUrls,
+        }),
+      });
+
+      closeGigForm();
+      await loadDashboard(user);
+      setActiveMessage(editingGig ? "Gig updated successfully." : "Gig posted successfully.");
+    } catch (err) {
+      setError(err.message || "Unable to save this gig.");
+    }
+  };
+
+  const updateBookingStatus = async (bookingId, status) => {
+    try {
+      setActiveMessage("");
+      setError("");
+      await request(`/bookings/${bookingId}/status?status=${status}`, {
+        method: "PUT",
+      });
+      await loadDashboard(user);
+      setActiveMessage(`Booking marked as ${status.toLowerCase()}.`);
+    } catch (err) {
+      setError(err.message || "Unable to update booking status.");
+    }
   };
 
   const applyAsProvider = async (event) => {
@@ -175,15 +407,25 @@ const Dashboard = () => {
       return;
     }
 
+    if (providerImageFiles.length > 5) {
+      setError("Please upload only up to 5 images.");
+      return;
+    }
+
     try {
       setActiveMessage("");
       setError("");
+      const uploadedImages = providerImageFiles.length ? await uploadImages(providerImageFiles) : [];
       await request(`/gigs/apply/${user.userID}`, {
         method: "POST",
-        body: JSON.stringify(providerForm),
+        body: JSON.stringify({
+          ...providerForm,
+          image: uploadedImages.join("\n"),
+        }),
       });
       await refreshUser(user.userID);
       setProviderForm(emptyProviderForm);
+      setProviderImageFiles([]);
       setShowProviderForm(false);
       setActiveMessage("Provider application submitted. Please wait for admin approval.");
     } catch (err) {
@@ -191,43 +433,24 @@ const Dashboard = () => {
     }
   };
 
-  const createGig = async (event) => {
+  const bookGig = async (event) => {
     event.preventDefault();
 
-    if (!gigForm.title || !gigForm.price || !gigForm.category) {
-      setError("Please add a title, price, and category for your gig.");
+    if (!bookingGig) return;
+
+    if (!bookingForm.bookingDate) {
+      setError("Please choose a booking date and time first.");
       return;
     }
 
-    try {
-      setActiveMessage("");
-      setError("");
-      await request(`/gigs/create/${user.userID}`, {
-        method: "POST",
-        body: JSON.stringify({
-          title: gigForm.title,
-          description: gigForm.description,
-          price: Number(gigForm.price),
-          category: gigForm.category,
-        }),
-      });
-
-      setGigForm({
-        title: "",
-        description: "",
-        price: "",
-        category: "PLUMBING",
-      });
-      await loadDashboard(user);
-      setActiveMessage("Gig posted successfully.");
-    } catch (err) {
-      setError(err.message || "Unable to create gig.");
-    }
-  };
-
-  const bookGig = async (gig) => {
-    if (!bookingDate) {
-      setError("Please choose a booking date and time first.");
+    if (
+      !bookingForm.firstname ||
+      !bookingForm.lastname ||
+      !bookingForm.email ||
+      !bookingForm.phoneNumber ||
+      !bookingForm.address
+    ) {
+      setError("Please complete your client contact details before booking.");
       return;
     }
 
@@ -238,43 +461,47 @@ const Dashboard = () => {
         method: "POST",
         body: JSON.stringify({
           client: { userID: user.userID },
-          gig: { gigID: gig.gigID },
-          bookingDate,
+          gig: { gigID: bookingGig.gigID },
+          bookingDate: bookingForm.bookingDate,
+          contactName: `${bookingForm.firstname} ${bookingForm.lastname}`.trim(),
+          contactEmail: bookingForm.email,
+          contactPhone: bookingForm.phoneNumber,
+          serviceAddress: bookingForm.address,
+          clientNotes: bookingForm.notes,
         }),
       });
 
-      await loadDashboard(user);
-      setActiveMessage(`Booking request sent for ${gig.title}.`);
+      setActiveMessage(`Booking request sent for ${bookingGig.title}.`);
+      closeBookingModal();
     } catch (err) {
       setError(err.message || "Unable to book this gig.");
     }
   };
 
-  const updateApplicant = async (applicantId, status) => {
-    try {
-      setActiveMessage("");
-      setError("");
-      await request(`/admin/applicants/${applicantId}/status?status=${status}`, {
-        method: "PUT",
-      });
-      await loadDashboard(user);
-      setActiveMessage(`Applicant ${status.toLowerCase()} successfully.`);
-    } catch (err) {
-      setError(err.message || "Unable to update applicant.");
-    }
-  };
+  const submitReview = async (event) => {
+    event.preventDefault();
+    if (!selectedGig || !user?.userID) return;
 
-  const updateBookingStatus = async (bookingId, status) => {
     try {
       setActiveMessage("");
       setError("");
-      await request(`/bookings/${bookingId}/status?status=${status}`, {
-        method: "PUT",
+      await request(`/reviews/gig/${selectedGig.gigID}/client/${user.userID}`, {
+        method: "POST",
+        body: JSON.stringify({
+          rating: Number(reviewForm.rating),
+          comment: reviewForm.comment,
+        }),
       });
-      await loadDashboard(user);
-      setActiveMessage(`Booking marked as ${status.toLowerCase()}.`);
+
+      const updatedReviews = await request(`/reviews/gig/${selectedGig.gigID}`);
+      setReviewsByGig((current) => ({
+        ...current,
+        [selectedGig.gigID]: updatedReviews,
+      }));
+      setReviewForm({ rating: 5, comment: "" });
+      setActiveMessage("Review posted successfully.");
     } catch (err) {
-      setError(err.message || "Unable to update booking.");
+      setError(err.message || "Unable to post review.");
     }
   };
 
@@ -291,26 +518,8 @@ const Dashboard = () => {
   }
 
   return (
-    <main className="dashboard-shell">
-      <aside className="dashboard-sidebar">
-        <div>
-          <p className="dashboard-kicker">sideL</p>
-          <h1>Dashboard</h1>
-        </div>
-
-        <nav className="dashboard-nav" aria-label="Dashboard sections">
-          <a href="#browse">Browse gigs</a>
-          <a href="#bookings">My bookings</a>
-          {isProvider && <a href="#provider">Provider tools</a>}
-          {isAdmin && <a href="#admin">Admin</a>}
-        </nav>
-
-        <button className="secondary-action" type="button" onClick={handleLogout}>
-          Logout
-        </button>
-      </aside>
-
-      <section className="dashboard-content">
+    <main className="marketplace-shell">
+      <section className="dashboard-content marketplace-content">
         <DashboardHeader
           user={user}
           providerStatus={providerStatusLabel}
@@ -318,17 +527,216 @@ const Dashboard = () => {
           onSearchChange={setSearchTerm}
           canApplyAsProvider={!isProvider && providerStatusLabel !== "PENDING" && !isAdmin}
           onApplyClick={() => setShowProviderForm((current) => !current)}
+          onMyProfile={() => navigate("/profile")}
+          onLogout={handleLogout}
         />
+
+        <div className="marketplace-tools">
+          <div>
+            <p className="dashboard-kicker">Client marketplace</p>
+            <h1>Find trusted sideL services</h1>
+          </div>
+          {isProvider && (
+            <div className="marketplace-actions">
+              <a className="secondary-inline" href="#provider-bookings">
+                Bookings
+              </a>
+              <a className="secondary-inline" href="#provider-gigs">
+                My gigs
+              </a>
+              <button className="primary-action compact-action" type="button" onClick={openCreateGigForm}>
+                Add gig
+              </button>
+            </div>
+          )}
+        </div>
 
         {loading && <p className="status-line">Loading dashboard...</p>}
         {error && <p className="error-banner">{error}</p>}
         {activeMessage && <p className="success-banner">{activeMessage}</p>}
 
+        {isProvider && (
+          <section className="dashboard-panel provider-gigs-panel" id="provider-gigs">
+            <div className="section-heading">
+              <div>
+                <p className="dashboard-kicker">Provider workspace</p>
+                <h3>My gigs</h3>
+              </div>
+              <button className="primary-action compact-action" type="button" onClick={openCreateGigForm}>
+                Add gig
+              </button>
+            </div>
+
+            {showGigForm && (
+              <form className="provider-form gig-editor-form" onSubmit={submitGig}>
+                <label>
+                  Gig title
+                  <input
+                    type="text"
+                    placeholder="Example: Electrical outlet repair"
+                    value={gigForm.title}
+                    onChange={(event) => setGigForm({ ...gigForm, title: event.target.value })}
+                  />
+                </label>
+
+                <label>
+                  Category
+                  <select
+                    value={gigForm.category}
+                    onChange={(event) => setGigForm({ ...gigForm, category: event.target.value })}
+                  >
+                    {categories.filter((category) => category !== "ALL").map((category) => (
+                      <option key={category} value={category}>{category}</option>
+                    ))}
+                  </select>
+                </label>
+
+                <label>
+                  Price
+                  <input
+                    type="number"
+                    min="1"
+                    placeholder="Service price"
+                    value={gigForm.price}
+                    onChange={(event) => setGigForm({ ...gigForm, price: event.target.value })}
+                  />
+                </label>
+
+                <label className="wide-field">
+                  Work images
+                  <input
+                    type="file"
+                    accept="image/*"
+                    multiple
+                    onChange={(event) => setGigImageFiles(Array.from(event.target.files || []).slice(0, 5))}
+                  />
+                  <span className="field-hint">
+                    {editingGig && !gigImageFiles.length
+                      ? `${getGigImages({ imageUrls: gigForm.imageUrls }).length}/5 saved images. Choose new files to replace them.`
+                      : `${gigImageFiles.length}/5 replacement images selected.`}
+                  </span>
+                </label>
+
+                {editingGig && getGigImages({ imageUrls: gigForm.imageUrls }).length > 0 && !gigImageFiles.length && (
+                  <div className="wide-field saved-image-preview">
+                    {getGigImages({ imageUrls: gigForm.imageUrls }).map((image, index) => (
+                      <img
+                        key={`${editingGig.gigID}-saved-${image}`}
+                        src={getImageSource(image)}
+                        alt={`${editingGig.title} saved work ${index + 1}`}
+                      />
+                    ))}
+                  </div>
+                )}
+
+                <label className="wide-field">
+                  Description
+                  <textarea
+                    placeholder="Describe the service, coverage area, inclusions, and experience."
+                    value={gigForm.description}
+                    onChange={(event) => setGigForm({ ...gigForm, description: event.target.value })}
+                  />
+                </label>
+
+                <div className="form-actions">
+                  <button className="secondary-inline" type="button" onClick={closeGigForm}>
+                    Cancel
+                  </button>
+                  <button className="primary-action" type="submit">
+                    {editingGig ? "Save gig" : "Post gig"}
+                  </button>
+                </div>
+              </form>
+            )}
+
+            <div className="provider-gig-list">
+              {myGigs.map((gig) => {
+                const images = getGigImages(gig);
+                return (
+                  <article className="provider-gig-row" key={gig.gigID}>
+                    <div className="provider-gig-thumb">
+                      {images.length ? (
+                        <img src={getImageSource(images[0])} alt={`${gig.title} preview`} loading="lazy" />
+                      ) : (
+                        <span>{gig.category}</span>
+                      )}
+                    </div>
+                    <div>
+                      <span className="pill">{gig.category}</span>
+                      <h4>{gig.title}</h4>
+                      <p>PHP {Number(gig.price || 0).toLocaleString()} - {images.length}/5 images</p>
+                    </div>
+                    <button className="secondary-inline" type="button" onClick={() => openEditGigForm(gig)}>
+                      Edit
+                    </button>
+                  </article>
+                );
+              })}
+            </div>
+
+            {!myGigs.length && !loading && (
+              <p className="muted-text">You have no gigs yet. Add your first service so clients can book you.</p>
+            )}
+          </section>
+        )}
+
+        {isProvider && (
+          <section className="dashboard-panel provider-gigs-panel" id="provider-bookings">
+            <div className="section-heading">
+              <div>
+                <p className="dashboard-kicker">Provider bookings</p>
+                <h3>Incoming service requests</h3>
+              </div>
+              <span className="status-chip">{providerJobs.length} requests</span>
+            </div>
+
+            <div className="provider-booking-list">
+              {providerJobs.map((booking) => (
+                <article className="provider-booking-card" key={booking.bookingID}>
+                  <div className="provider-booking-main">
+                    <div>
+                      <span className="pill">{booking.gig?.category || "Service"}</span>
+                      <h4>{booking.gig?.title || "Booked service"}</h4>
+                      <p>{new Date(booking.bookingDate).toLocaleString()}</p>
+                    </div>
+                    <span className="status-chip">{booking.status}</span>
+                  </div>
+
+                  <div className="provider-booking-details">
+                    <p><strong>Client:</strong> {booking.contactName || `${booking.client?.firstname || ""} ${booking.client?.lastname || ""}`.trim() || "Client"}</p>
+                    <p><strong>Email:</strong> {booking.contactEmail || booking.client?.email || "No email provided"}</p>
+                    <p><strong>Phone:</strong> {booking.contactPhone || booking.client?.phoneNumber || "No phone provided"}</p>
+                    <p><strong>Address:</strong> {booking.serviceAddress || booking.client?.address || "No address provided"}</p>
+                    {booking.clientNotes && <p><strong>Notes:</strong> {booking.clientNotes}</p>}
+                  </div>
+
+                  <div className="button-group">
+                    {bookingStatuses.map((status) => (
+                      <button
+                        key={status}
+                        type="button"
+                        disabled={booking.status === status}
+                        onClick={() => updateBookingStatus(booking.bookingID, status)}
+                      >
+                        {status}
+                      </button>
+                    ))}
+                  </div>
+                </article>
+              ))}
+            </div>
+
+            {!providerJobs.length && !loading && (
+              <p className="muted-text">No one has booked your gigs yet.</p>
+            )}
+          </section>
+        )}
+
         {showProviderForm && !isProvider && !isAdmin && providerStatusLabel !== "PENDING" && (
           <section className="dashboard-panel" id="provider-application">
             <div className="section-heading">
               <div>
-                <p className="dashboard-kicker">ProvidersForm</p>
+                <p className="dashboard-kicker">Form</p>
                 <h3>Apply as a provider</h3>
               </div>
             </div>
@@ -377,13 +785,14 @@ const Dashboard = () => {
               </label>
 
               <label className="wide-field">
-                Image URL
+                Work images
                 <input
-                  type="url"
-                  placeholder="Optional image link for your work/sample"
-                  value={providerForm.image}
-                  onChange={(event) => setProviderForm({ ...providerForm, image: event.target.value })}
+                  type="file"
+                  accept="image/*"
+                  multiple
+                  onChange={(event) => setProviderImageFiles(Array.from(event.target.files || []).slice(0, 5))}
                 />
+                <span className="field-hint">{providerImageFiles.length}/5 images selected</span>
               </label>
 
               <label className="wide-field">
@@ -416,212 +825,297 @@ const Dashboard = () => {
           </section>
         )}
 
-        <section className="dashboard-panel" id="browse">
-          <div className="section-heading">
-            <div>
-              <p className="dashboard-kicker">Client marketplace</p>
-              <h3>Browse available gigs</h3>
-            </div>
-            <input
-              className="booking-date"
-              type="datetime-local"
-              value={bookingDate}
-              onChange={(event) => setBookingDate(event.target.value)}
-              aria-label="Booking date and time"
-            />
-          </div>
+        <div className="category-tabs">
+          {categories.map((category) => (
+            <button
+              className={selectedCategory === category ? "active" : ""}
+              key={category}
+              type="button"
+              onClick={() => setSelectedCategory(category)}
+            >
+              {category}
+            </button>
+          ))}
+        </div>
 
-          <div className="category-tabs">
-            {categories.map((category) => (
-              <button
-                className={selectedCategory === category ? "active" : ""}
-                key={category}
-                type="button"
-                onClick={() => setSelectedCategory(category)}
-              >
-                {category}
-              </button>
-            ))}
-          </div>
+        <section className="gig-grid marketplace-grid" aria-label="Available gigs">
+          {visibleGigs.map((gig) => {
+            const reviews = getGigReviews(gig.gigID);
+            const averageRating = getAverageRating(gig.gigID);
+            const providerName = `${gig.provider?.firstname || "Provider"} ${gig.provider?.lastname || ""}`.trim();
+            const providerInitials = `${gig.provider?.firstname?.[0] || ""}${gig.provider?.lastname?.[0] || ""}` || "SL";
+            const gigImages = getGigImages(gig);
+            const activeImageIndex = Math.min(imageIndexes[gig.gigID] || 0, Math.max(gigImages.length - 1, 0));
+            const activeImage = gigImages[activeImageIndex];
 
-          <div className="gig-grid">
-            {visibleGigs.map((gig) => (
-              <article className="gig-card" key={gig.gigID}>
+            return (
+              <article className="gig-card marketplace-card" key={gig.gigID}>
+                <button className="provider-profile-button" type="button" onClick={() => setSelectedGig(gig)}>
+                  <span className="provider-card-avatar" aria-hidden="true">
+                    {providerInitials.toUpperCase()}
+                  </span>
+                  <span className="provider-card-meta">
+                    <strong>{providerName}</strong>
+                    <small>{averageRating ? `${averageRating}/5 rating` : "No ratings yet"} - {reviews.length} reviews</small>
+                  </span>
+                </button>
+
+                <button
+                  className={`heart-button ${likedGigs[gig.gigID] ? "liked" : ""}`}
+                  type="button"
+                  aria-label={likedGigs[gig.gigID] ? "Unlike gig" : "Like gig"}
+                  onClick={() => toggleLike(gig.gigID)}
+                >
+                  {likedGigs[gig.gigID] ? "\u2665" : "\u2661"}
+                </button>
+
+                <div className="gig-image-carousel">
+                  {activeImage ? (
+                    <>
+                      <img
+                        src={getImageSource(activeImage)}
+                        alt={`${gig.title} work sample ${activeImageIndex + 1}`}
+                        loading="lazy"
+                      />
+                      {gigImages.length > 1 && (
+                        <div className="image-carousel-controls">
+                          <button type="button" onClick={() => changeGigImage(gig.gigID, gigImages.length, -1)}>
+                            Prev
+                          </button>
+                          <span>{activeImageIndex + 1}/{gigImages.length}</span>
+                          <button type="button" onClick={() => changeGigImage(gig.gigID, gigImages.length, 1)}>
+                            Next
+                          </button>
+                        </div>
+                      )}
+                    </>
+                  ) : (
+                    <div className="gig-image-placeholder">
+                      <span>{gig.category || "Service"}</span>
+                    </div>
+                  )}
+                </div>
+
                 <div>
                   <span className="pill">{gig.category}</span>
                   <h4>{gig.title}</h4>
                   <p>{gig.description || "No description provided."}</p>
                 </div>
+
                 <div className="card-footer">
                   <strong>PHP {Number(gig.price || 0).toLocaleString()}</strong>
-                  <button type="button" onClick={() => bookGig(gig)}>
+                  <button type="button" onClick={() => openBookingModal(gig)}>
                     Book
                   </button>
                 </div>
               </article>
-            ))}
-          </div>
-
-          {!visibleGigs.length && !loading && (
-            <p className="muted-text">No gigs found for this category yet.</p>
-          )}
+            );
+          })}
         </section>
 
-        <section className="dashboard-panel" id="bookings">
-          <div className="section-heading">
-            <div>
-              <p className="dashboard-kicker">Client activity</p>
-              <h3>My bookings</h3>
-            </div>
-          </div>
-
-          <div className="data-list">
-            {myBookings.map((booking) => (
-              <article className="data-row" key={booking.bookingID}>
-                <div>
-                  <h4>{booking.gig?.title || "Booked service"}</h4>
-                  <p>{new Date(booking.bookingDate).toLocaleString()}</p>
-                </div>
-                <span className="status-chip">{booking.status}</span>
-              </article>
-            ))}
-          </div>
-
-          {!myBookings.length && !loading && (
-            <p className="muted-text">You have no bookings yet.</p>
-          )}
-        </section>
-
-        {isProvider && (
-          <section className="dashboard-panel provider-layout" id="provider">
-            <div className="section-heading">
-              <div>
-                <p className="dashboard-kicker">Provider workspace</p>
-                <h3>Manage gigs and requests</h3>
-              </div>
-            </div>
-
-            <form className="gig-form" onSubmit={createGig}>
-              <input
-                type="text"
-                placeholder="Service title"
-                value={gigForm.title}
-                onChange={(event) => setGigForm({ ...gigForm, title: event.target.value })}
-              />
-              <select
-                value={gigForm.category}
-                onChange={(event) => setGigForm({ ...gigForm, category: event.target.value })}
-              >
-                {categories.filter((category) => category !== "ALL").map((category) => (
-                  <option key={category} value={category}>{category}</option>
-                ))}
-              </select>
-              <input
-                type="number"
-                min="1"
-                placeholder="Price"
-                value={gigForm.price}
-                onChange={(event) => setGigForm({ ...gigForm, price: event.target.value })}
-              />
-              <textarea
-                placeholder="Short service description"
-                value={gigForm.description}
-                onChange={(event) => setGigForm({ ...gigForm, description: event.target.value })}
-              />
-              <button type="submit">Post gig</button>
-            </form>
-
-            <div className="split-grid">
-              <div>
-                <h4 className="list-title">My posted gigs</h4>
-                <div className="data-list">
-              {myGigs.map((gig) => (
-                <article className="data-row" key={gig.gigID}>
-                  <div>
-                    <h4>{gig.title}</h4>
-                    <p>{gig.category} - PHP {Number(gig.price || 0).toLocaleString()}</p>
-                  </div>
-                </article>
-              ))}
-                </div>
-              </div>
-
-              <div>
-                <h4 className="list-title">Incoming jobs</h4>
-                <div className="data-list">
-                  {providerJobs.map((booking) => (
-                    <article className="data-row stacked" key={booking.bookingID}>
-                      <div>
-                        <h4>{booking.gig?.title || "Service request"}</h4>
-                        <p>
-                          {booking.client?.firstname} {booking.client?.lastname} -{" "}
-                          {new Date(booking.bookingDate).toLocaleString()}
-                        </p>
-                      </div>
-                      <div className="button-group">
-                        {bookingStatuses.map((status) => (
-                          <button
-                            key={status}
-                            type="button"
-                            onClick={() => updateBookingStatus(booking.bookingID, status)}
-                          >
-                            {status}
-                          </button>
-                        ))}
-                      </div>
-                    </article>
-                  ))}
-                </div>
-              </div>
-            </div>
-          </section>
+        {!visibleGigs.length && !loading && (
+          <p className="muted-text">No gigs found for your search yet.</p>
         )}
+      </section>
 
-        {isAdmin && (
-          <section className="dashboard-panel" id="admin">
+      {selectedGig && (
+        <section className="profile-drawer" aria-label="Provider profile and reviews">
+          <div className="profile-drawer-header">
+            <div>
+              <p className="dashboard-kicker">Provider profile</p>
+              <h2>{selectedGig.provider?.firstname} {selectedGig.provider?.lastname}</h2>
+            </div>
+            <button className="secondary-inline" type="button" onClick={() => setSelectedGig(null)}>
+              Close
+            </button>
+          </div>
+
+          <article className="provider-detail-card">
+            {(() => {
+              const images = getGigImages(selectedGig);
+              const activeIndex = Math.min(imageIndexes[selectedGig.gigID] || 0, Math.max(images.length - 1, 0));
+              const activeImage = images[activeIndex];
+
+              return activeImage ? (
+                <div className="gig-image-carousel detail-gallery">
+                  <img
+                    src={getImageSource(activeImage)}
+                    alt={`${selectedGig.title} work sample ${activeIndex + 1}`}
+                    loading="lazy"
+                  />
+                  {images.length > 1 && (
+                    <div className="image-carousel-controls">
+                      <button type="button" onClick={() => changeGigImage(selectedGig.gigID, images.length, -1)}>
+                        Prev
+                      </button>
+                      <span>{activeIndex + 1}/{images.length}</span>
+                      <button type="button" onClick={() => changeGigImage(selectedGig.gigID, images.length, 1)}>
+                        Next
+                      </button>
+                    </div>
+                  )}
+                </div>
+              ) : null;
+            })()}
+            <span className="pill">{selectedGig.category}</span>
+            <h3>{selectedGig.title}</h3>
+            <p>{selectedGig.description || "This provider has not added a detailed description yet."}</p>
+            {selectedGig.provider?.bio && <p>{selectedGig.provider.bio}</p>}
+            {selectedGig.provider?.address && <p>Service area: {selectedGig.provider.address}</p>}
+            <strong>PHP {Number(selectedGig.price || 0).toLocaleString()}</strong>
+          </article>
+
+          <section className="reviews-panel">
             <div className="section-heading">
               <div>
-                <p className="dashboard-kicker">Admin review</p>
-                <h3>Provider applicants</h3>
+                <p className="dashboard-kicker">Reviews</p>
+                <h3>
+                  {getAverageRating(selectedGig.gigID) || "No"} rating
+                </h3>
               </div>
             </div>
 
             <div className="data-list">
-              {applicants.map((applicant) => (
-                <article className="data-row applicant-row" key={applicant.applicationID}>
-                  <div>
-                    <span className="pill">{applicant.category}</span>
-                    <h4>{applicant.title}</h4>
-                    <p>
-                      {applicant.user?.firstname} {applicant.user?.lastname} - {applicant.email}
-                    </p>
-                    <p>{applicant.address}</p>
-                    <p>{applicant.description}</p>
-                    {applicant.requirements && <p>Requirements: {applicant.requirements}</p>}
-                    {applicant.image && (
-                      <a className="application-link" href={applicant.image} target="_blank" rel="noreferrer">
-                        View image
-                      </a>
-                    )}
-                  </div>
-                  <div className="button-group">
-                    <button type="button" onClick={() => updateApplicant(applicant.applicationID, "APPROVED")}>
-                      Approve
-                    </button>
-                    <button type="button" onClick={() => updateApplicant(applicant.applicationID, "REJECTED")}>
-                      Reject
-                    </button>
-                  </div>
+              {getGigReviews(selectedGig.gigID).map((review) => (
+                <article className="review-row" key={review.reviewID}>
+                  <strong>{review.rating}/5</strong>
+                  <p>{review.comment || "No written comment."}</p>
+                  <span>{review.client?.firstname} {review.client?.lastname}</span>
                 </article>
               ))}
             </div>
 
-            {!applicants.length && !loading && (
-              <p className="muted-text">No pending provider applications.</p>
+            {!getGigReviews(selectedGig.gigID).length && (
+              <p className="muted-text">No reviews yet. You can be the first to post one.</p>
             )}
+
+            <form className="review-form" onSubmit={submitReview}>
+              <label>
+                Rating
+                <select
+                  value={reviewForm.rating}
+                  onChange={(event) => setReviewForm({ ...reviewForm, rating: event.target.value })}
+                >
+                  <option value="5">5 - Excellent</option>
+                  <option value="4">4 - Good</option>
+                  <option value="3">3 - Fair</option>
+                  <option value="2">2 - Poor</option>
+                  <option value="1">1 - Bad</option>
+                </select>
+              </label>
+
+              <label>
+                Review
+                <textarea
+                  placeholder="Share your experience with this provider."
+                  value={reviewForm.comment}
+                  onChange={(event) => setReviewForm({ ...reviewForm, comment: event.target.value })}
+                />
+              </label>
+
+              <button className="primary-action" type="submit">
+                Post review
+              </button>
+            </form>
           </section>
-        )}
-      </section>
+        </section>
+      )}
+
+      {bookingGig && (
+        <div className="booking-modal-backdrop" role="presentation">
+          <section className="booking-modal" role="dialog" aria-modal="true" aria-labelledby="booking-modal-title">
+            <div className="booking-modal-header">
+              <div>
+                <p className="dashboard-kicker">Book service</p>
+                <h2 id="booking-modal-title">{bookingGig.title}</h2>
+              </div>
+              <button className="secondary-inline" type="button" onClick={closeBookingModal}>
+                Close
+              </button>
+            </div>
+
+            <div className="booking-summary">
+              <span className="pill">{bookingGig.category}</span>
+              <strong>PHP {Number(bookingGig.price || 0).toLocaleString()}</strong>
+              <p>{bookingGig.provider?.firstname} {bookingGig.provider?.lastname}</p>
+            </div>
+
+            <form className="booking-form" onSubmit={bookGig}>
+              <label className="wide-field">
+                Booking date and time
+                <input
+                  type="datetime-local"
+                  value={bookingForm.bookingDate}
+                  onChange={(event) => setBookingForm({ ...bookingForm, bookingDate: event.target.value })}
+                />
+              </label>
+
+              <label>
+                First name
+                <input
+                  type="text"
+                  value={bookingForm.firstname}
+                  onChange={(event) => setBookingForm({ ...bookingForm, firstname: event.target.value })}
+                />
+              </label>
+
+              <label>
+                Last name
+                <input
+                  type="text"
+                  value={bookingForm.lastname}
+                  onChange={(event) => setBookingForm({ ...bookingForm, lastname: event.target.value })}
+                />
+              </label>
+
+              <label>
+                Email
+                <input
+                  type="email"
+                  value={bookingForm.email}
+                  onChange={(event) => setBookingForm({ ...bookingForm, email: event.target.value })}
+                />
+              </label>
+
+              <label>
+                Phone number
+                <input
+                  type="text"
+                  value={bookingForm.phoneNumber}
+                  onChange={(event) => setBookingForm({ ...bookingForm, phoneNumber: event.target.value })}
+                />
+              </label>
+
+              <label className="wide-field">
+                Service address
+                <input
+                  type="text"
+                  value={bookingForm.address}
+                  onChange={(event) => setBookingForm({ ...bookingForm, address: event.target.value })}
+                />
+              </label>
+
+              <label className="wide-field">
+                Additional details
+                <textarea
+                  placeholder="Add notes about the issue, preferred time, or exact location."
+                  value={bookingForm.notes}
+                  onChange={(event) => setBookingForm({ ...bookingForm, notes: event.target.value })}
+                />
+              </label>
+
+              <div className="form-actions">
+                <button className="secondary-inline" type="button" onClick={closeBookingModal}>
+                  Cancel
+                </button>
+                <button className="primary-action" type="submit">
+                  Send booking request
+                </button>
+              </div>
+            </form>
+          </section>
+        </div>
+      )}
     </main>
   );
 };

@@ -10,6 +10,9 @@ public class UserFactory {
         user.setLastname(input.getLastname());
         user.setEmail(input.getEmail());
         user.setPassword(input.getPassword());
+        user.setPhoneNumber(input.getPhoneNumber());
+        user.setAddress(input.getAddress());
+        user.setBio(input.getBio());
         return user;
     }
 }

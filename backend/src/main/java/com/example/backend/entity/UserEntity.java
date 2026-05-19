@@ -24,6 +24,15 @@ public class UserEntity {
     @Column(nullable = false)
     private String password;
 
+    @Column(name = "phone_number", length = 30)
+    private String phoneNumber;
+
+    @Column(length = 255)
+    private String address;
+
+    @Column(columnDefinition = "TEXT")
+    private String bio;
+
     // --- Marketplace Fields ---
 
     @Column(name = "is_admin", nullable = false)
@@ -68,6 +77,15 @@ public class UserEntity {
 
     public String getPassword() { return password; }
     public void setPassword(String password) { this.password = password; }
+
+    public String getPhoneNumber() { return phoneNumber; }
+    public void setPhoneNumber(String phoneNumber) { this.phoneNumber = phoneNumber; }
+
+    public String getAddress() { return address; }
+    public void setAddress(String address) { this.address = address; }
+
+    public String getBio() { return bio; }
+    public void setBio(String bio) { this.bio = bio; }
 
     public Boolean getIsAdmin() { return isAdmin; }
     public void setIsAdmin(Boolean isAdmin) { this.isAdmin = isAdmin; }

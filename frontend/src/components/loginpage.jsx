@@ -97,10 +97,6 @@ const LoginPage = () => {
           Don’t have an account? <Link to="/signup">Sign up</Link>
         </p>
 
-        <p className="footer-text">
-          Admin? <Link to="/admin/login">Admin login</Link>
-        </p>
-
       </div>
     </div>
   );
