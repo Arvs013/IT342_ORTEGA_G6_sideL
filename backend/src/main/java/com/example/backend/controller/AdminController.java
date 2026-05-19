@@ -1,6 +1,8 @@
 package com.example.backend.controller;
 
+import com.example.backend.entity.ProviderApplicationEntity;
 import com.example.backend.entity.UserEntity;
+import com.example.backend.repository.ProviderApplicationRepository;
 import com.example.backend.repository.UserRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
@@ -15,10 +17,13 @@ public class AdminController {
     @Autowired
     private UserRepository userRepository;
 
+    @Autowired
+    private ProviderApplicationRepository providerApplicationRepository;
+
     // 1. Get all pending provider applicants
     @GetMapping("/applicants")
-    public ResponseEntity<List<UserEntity>> getPendingApplicants() {
-        return ResponseEntity.ok(userRepository.findByProviderStatus("PENDING"));
+    public ResponseEntity<List<ProviderApplicationEntity>> getPendingApplicants() {
+        return ResponseEntity.ok(providerApplicationRepository.findByStatus("PENDING"));
     }
 
     // 2. Accept or Reject a provider applicant
@@ -27,18 +32,22 @@ public class AdminController {
             @PathVariable Integer id,
             @RequestParam String status) { // pass "APPROVED" or "REJECTED"
 
-        return userRepository.findById(id).map(user -> {
+        return providerApplicationRepository.findById(id).map(application -> {
+            UserEntity user = application.getUser();
             String upperStatus = status.toUpperCase();
             if (upperStatus.equals("APPROVED")) {
                 user.setIsProvider(true);
                 user.setProviderStatus("APPROVED");
+                application.setStatus("APPROVED");
             } else if (upperStatus.equals("REJECTED")) {
                 user.setIsProvider(false);
                 user.setProviderStatus("REJECTED");
+                application.setStatus("REJECTED");
             } else {
                 return ResponseEntity.badRequest().body("Invalid status format.");
             }
             userRepository.save(user);
+            providerApplicationRepository.save(application);
             return ResponseEntity.ok("Provider status updated to: " + upperStatus);
         }).orElse(ResponseEntity.notFound().build());
     }

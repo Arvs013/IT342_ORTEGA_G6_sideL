@@ -33,4 +33,21 @@ public class BookingController {
     public ResponseEntity<List<BookingEntity>> getProviderJobs(@PathVariable Integer providerId) {
         return ResponseEntity.ok(bookingRepository.findByGig_Provider_UserID(providerId));
     }
+
+    // 4. Provider updates booking/job status
+    @PutMapping("/{bookingId}/status")
+    public ResponseEntity<?> updateBookingStatus(
+            @PathVariable Integer bookingId,
+            @RequestParam String status) {
+
+        return bookingRepository.findById(bookingId).map(booking -> {
+            String upperStatus = status.toUpperCase();
+            if (!List.of("PENDING", "ACCEPTED", "REJECTED", "COMPLETED", "CANCELLED").contains(upperStatus)) {
+                return ResponseEntity.badRequest().body("Invalid booking status.");
+            }
+
+            booking.setStatus(upperStatus);
+            return ResponseEntity.ok(bookingRepository.save(booking));
+        }).orElse(ResponseEntity.notFound().build());
+    }
 }
