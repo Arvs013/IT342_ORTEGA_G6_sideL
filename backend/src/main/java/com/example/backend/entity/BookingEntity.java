@@ -18,7 +18,7 @@ public class BookingEntity {
 
     @ManyToOne
     @JoinColumn(name = "gig_id", nullable = false)
-    private UserEntity gig;
+    private GigEntity gig;
 
     @Column(name = "booking_date", nullable = false)
     private LocalDateTime bookingDate;
@@ -38,8 +38,8 @@ public class BookingEntity {
     public UserEntity getClient() { return client; }
     public void setClient(UserEntity client) { this.client = client; }
 
-    public UserEntity getGig() { return gig; }
-    public void setGig(UserEntity gig) { this.gig = gig; }
+    public GigEntity getGig() { return gig; }
+    public void setGig(GigEntity gig) { this.gig = gig; }
 
     public LocalDateTime getBookingDate() { return bookingDate; }
     public void setBookingDate(LocalDateTime bookingDate) { this.bookingDate = bookingDate; }

@@ -2,24 +2,23 @@ import React, { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import "../styles/LoginPage.css";
 
-const LoginPage = () => {
+const AdminLogin = () => {
+  const navigate = useNavigate();
   const [isLoaded, setIsLoaded] = useState(false);
-  const [email, setEmail] = useState("");
+  const [email, setEmail] = useState("admin@sidel.com");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
-
-  const navigate = useNavigate();
 
   useEffect(() => {
     setIsLoaded(true);
   }, []);
 
-  const handleLogin = async (e) => {
-    e.preventDefault();
+  const handleAdminLogin = async (event) => {
+    event.preventDefault();
 
     if (!email || !password) {
-      setError("Please fill in both email and password");
+      setError("Please fill in admin email and password.");
       return;
     }
 
@@ -38,15 +37,17 @@ const LoginPage = () => {
       const data = await response.json();
 
       if (!response.ok) {
-        throw new Error(data.message || "Invalid email or password");
+        throw new Error(data.message || "Invalid admin credentials");
+      }
+
+      if (!data.isAdmin) {
+        throw new Error("This account is not an admin account.");
       }
 
       localStorage.setItem("loggedUser", JSON.stringify(data));
-
-      navigate(data.isAdmin ? "/admin/dashboard" : "/dashboard");
-
+      navigate("/admin/dashboard");
     } catch (err) {
-      setError(err.message || "Login failed. Please try again.");
+      setError(err.message || "Admin login failed.");
     } finally {
       setLoading(false);
     }
@@ -55,55 +56,43 @@ const LoginPage = () => {
   return (
     <div className={`login-container ${isLoaded ? "loaded" : ""}`}>
       <div className="login-card">
-
-        <h1 className="login-title">Get Started</h1>
-        <p className="login-subtitle">
-          Welcome to sideL. Let’s continue your session
-        </p>
+        <h1 className="login-title">Admin Login</h1>
+        <p className="login-subtitle">Manage provider applications and sideL activity</p>
 
         <div className="divider">
           <span className="line"></span>
-          <span className="or-text">Login with Email</span>
+          <span className="or-text">Admin access</span>
           <span className="line"></span>
         </div>
 
         {error && <p className="error-message">{error}</p>}
 
-        <form className="login-form" onSubmit={handleLogin}>
+        <form className="login-form" onSubmit={handleAdminLogin}>
           <input
             type="email"
-            placeholder="Email"
+            placeholder="Admin email"
             value={email}
-            onChange={(e) => setEmail(e.target.value)}
+            onChange={(event) => setEmail(event.target.value)}
           />
 
           <input
             type="password"
-            placeholder="Password"
+            placeholder="Admin password"
             value={password}
-            onChange={(e) => setPassword(e.target.value)}
+            onChange={(event) => setPassword(event.target.value)}
           />
 
           <button type="submit" disabled={loading}>
-            {loading ? "Logging in..." : "Login"}
+            {loading ? "Checking..." : "Login as Admin"}
           </button>
         </form>
 
-        <p className="terms-text">
-          By clicking Sign in, you agree to our Terms, Privacy Policy and Cookies Policy.
-        </p>
-
         <p className="footer-text">
-          Don’t have an account? <Link to="/signup">Sign up</Link>
+          Client or provider? <Link to="/login">Go to user login</Link>
         </p>
-
-        <p className="footer-text">
-          Admin? <Link to="/admin/login">Admin login</Link>
-        </p>
-
       </div>
     </div>
   );
 };
 
-export default LoginPage;
+export default AdminLogin;

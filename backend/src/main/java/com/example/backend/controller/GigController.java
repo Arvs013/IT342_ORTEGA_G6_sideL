@@ -1,8 +1,10 @@
 package com.example.backend.controller;
 
 import com.example.backend.entity.GigEntity;
+import com.example.backend.entity.ProviderApplicationEntity;
 import com.example.backend.entity.UserEntity;
 import com.example.backend.repository.GigRepository;
+import com.example.backend.repository.ProviderApplicationRepository;
 import com.example.backend.repository.UserRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
@@ -20,13 +22,28 @@ public class GigController {
     @Autowired
     private UserRepository userRepository;
 
+    @Autowired
+    private ProviderApplicationRepository providerApplicationRepository;
+
     // 1. Client applies to become a Provider
     @PostMapping("/apply/{userId}")
-    public ResponseEntity<String> applyToBeProvider(@PathVariable Integer userId) {
+    public ResponseEntity<?> applyToBeProvider(
+            @PathVariable Integer userId,
+            @RequestBody ProviderApplicationEntity application) {
         return userRepository.findById(userId).map(user -> {
+            if (user.getIsProvider()) {
+                return ResponseEntity.badRequest().body("User is already an approved provider.");
+            }
+            if (!providerApplicationRepository.findByUser_UserIDAndStatus(userId, "PENDING").isEmpty()) {
+                return ResponseEntity.badRequest().body("You already have a pending provider application.");
+            }
+
+            application.setUser(user);
+            application.setStatus("PENDING");
+            application.setCategory(application.getCategory().toUpperCase());
             user.setProviderStatus("PENDING");
             userRepository.save(user);
-            return ResponseEntity.ok("Application submitted to Admin.");
+            return ResponseEntity.ok(providerApplicationRepository.save(application));
         }).orElse(ResponseEntity.notFound().build());
     }
 
@@ -50,5 +67,11 @@ public class GigController {
             return ResponseEntity.ok(gigRepository.findByCategory(category.toUpperCase()));
         }
         return ResponseEntity.ok(gigRepository.findAll());
+    }
+
+    // 4. Provider views their own posted gigs
+    @GetMapping("/provider/{providerId}")
+    public ResponseEntity<List<GigEntity>> getProviderGigs(@PathVariable Integer providerId) {
+        return ResponseEntity.ok(gigRepository.findByProvider_UserID(providerId));
     }
 }

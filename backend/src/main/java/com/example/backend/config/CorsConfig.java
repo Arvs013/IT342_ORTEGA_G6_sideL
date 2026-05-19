@@ -16,6 +16,7 @@ public class CorsConfig {
                 registry.addMapping("/api/**")
                         .allowedOrigins(
                                 "http://localhost:3000",   // React Web App
+                                "http://localhost:3001",   // React Web App alternate dev port
                                 "http://10.0.2.2:8080",    // Native Android Emulator
                                 "http://localhost"         // iOS Simulator / Web Testing
                         )
