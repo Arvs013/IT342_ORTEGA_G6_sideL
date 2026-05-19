@@ -30,6 +30,9 @@ public class GigEntity {
     @Column(nullable = false, length = 50)
     private String category;
 
+    @Column(name = "image_urls", columnDefinition = "TEXT")
+    private String imageUrls;
+
     @Column(name = "created_at")
     private LocalDateTime createdAt;
 
@@ -52,6 +55,9 @@ public class GigEntity {
 
     public String getCategory() { return category; }
     public void setCategory(String category) { this.category = category; }
+
+    public String getImageUrls() { return imageUrls; }
+    public void setImageUrls(String imageUrls) { this.imageUrls = imageUrls; }
 
     public LocalDateTime getCreatedAt() { return createdAt; }
     public void setCreatedAt(LocalDateTime createdAt) { this.createdAt = createdAt; }

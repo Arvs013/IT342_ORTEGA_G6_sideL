@@ -1,0 +1,97 @@
+package com.example.backend.controller;
+
+import com.example.backend.entity.GigEntity;
+import com.example.backend.entity.UserEntity;
+import com.example.backend.repository.GigRepository;
+import com.example.backend.repository.UserRepository;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.*;
+
+import java.util.Comparator;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
+@RestController
+@RequestMapping("/api")
+public class ServiceController {
+
+    @Autowired
+    private GigRepository gigRepository;
+
+    @Autowired
+    private UserRepository userRepository;
+
+    @GetMapping("/services")
+    public ResponseEntity<List<GigEntity>> getServices(
+            @RequestParam(required = false) String category,
+            @RequestParam(required = false) String keyword) {
+
+        String normalizedCategory = normalize(category);
+        String normalizedKeyword = keyword == null ? "" : keyword.trim().toLowerCase();
+
+        List<GigEntity> services = gigRepository.findAll().stream()
+                .filter(gig -> normalizedCategory.isEmpty() || normalize(gig.getCategory()).equals(normalizedCategory))
+                .filter(gig -> normalizedKeyword.isEmpty() || serviceMatchesKeyword(gig, normalizedKeyword))
+                .sorted(Comparator.comparing(GigEntity::getCreatedAt, Comparator.nullsLast(Comparator.reverseOrder())))
+                .toList();
+
+        return ResponseEntity.ok(services);
+    }
+
+    @GetMapping("/providers")
+    public ResponseEntity<List<Map<String, Object>>> getProviders() {
+        List<Map<String, Object>> providers = userRepository.findByIsProviderTrue().stream()
+                .map(this::providerResponse)
+                .toList();
+
+        return ResponseEntity.ok(providers);
+    }
+
+    @GetMapping("/providers/{id}")
+    public ResponseEntity<?> getProvider(@PathVariable Integer id) {
+        return userRepository.findById(id).map(provider -> {
+            if (!Boolean.TRUE.equals(provider.getIsProvider())) {
+                return ResponseEntity.badRequest().body("User is not an approved provider.");
+            }
+
+            Map<String, Object> response = providerResponse(provider);
+            response.put("services", gigRepository.findByProvider_UserID(provider.getUserID()));
+            return ResponseEntity.ok(response);
+        }).orElse(ResponseEntity.notFound().build());
+    }
+
+    private boolean serviceMatchesKeyword(GigEntity gig, String keyword) {
+        String searchable = String.join(" ",
+                safe(gig.getTitle()),
+                safe(gig.getDescription()),
+                safe(gig.getCategory()),
+                safe(gig.getProvider() == null ? "" : gig.getProvider().getFirstname()),
+                safe(gig.getProvider() == null ? "" : gig.getProvider().getLastname())
+        ).toLowerCase();
+
+        return searchable.contains(keyword);
+    }
+
+    private Map<String, Object> providerResponse(UserEntity provider) {
+        Map<String, Object> response = new HashMap<>();
+        response.put("userID", provider.getUserID());
+        response.put("firstname", provider.getFirstname());
+        response.put("lastname", provider.getLastname());
+        response.put("email", provider.getEmail());
+        response.put("phoneNumber", provider.getPhoneNumber());
+        response.put("address", provider.getAddress());
+        response.put("bio", provider.getBio());
+        response.put("providerStatus", provider.getProviderStatus());
+        return response;
+    }
+
+    private String normalize(String value) {
+        return value == null ? "" : value.trim().toUpperCase().replaceAll("[\\s-]+", "_");
+    }
+
+    private String safe(String value) {
+        return value == null ? "" : value;
+    }
+}

@@ -22,7 +22,7 @@ public class ProviderApplicationEntity {
     @Column(columnDefinition = "TEXT", nullable = false)
     private String description;
 
-    @Column(length = 500)
+    @Column(columnDefinition = "TEXT")
     private String image;
 
     @Column(nullable = false, length = 50)
