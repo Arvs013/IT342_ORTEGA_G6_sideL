@@ -6,12 +6,14 @@ import AdminLogin from "./components/AdminLogin";
 import AdminDashboard from "./components/AdminDashboard";
 import MyProfile from "./components/MyProfile";
 import ClientBookings from "./components/ClientBookings";
+import LandingPage from "./components/LandingPage";
 import './App.css';
 
 function App() {
   return (
     <Router>
       <Routes>
+        <Route path="/" element={<LandingPage />} />
         <Route path="/signup" element={<SignupPage />} />
         <Route path="/login" element={<LoginPage />} />
         <Route path="/dashboard" element={<Dashboard/>} />
