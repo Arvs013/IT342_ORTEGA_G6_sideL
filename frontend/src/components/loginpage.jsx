@@ -42,9 +42,7 @@ const LoginPage = () => {
       }
 
       localStorage.setItem("loggedUser", JSON.stringify(data));
-
       navigate(data.isAdmin ? "/admin/dashboard" : "/dashboard");
-
     } catch (err) {
       setError(err.message || "Login failed. Please try again.");
     } finally {
@@ -53,12 +51,16 @@ const LoginPage = () => {
   };
 
   return (
-    <div className={`login-container ${isLoaded ? "loaded" : ""}`}>
-      <div className="login-card">
+    <main className={`login-container ${isLoaded ? "loaded" : ""}`}>
+      <section className="login-card">
+        <Link className="auth-logo" to="/">
+          side<span>L</span>
+        </Link>
 
-        <h1 className="login-title">Get Started</h1>
+        <p className="auth-kicker">Welcome back</p>
+        <h1 className="login-title">Sign in to sideL</h1>
         <p className="login-subtitle">
-          Welcome to sideL. Let’s continue your session
+          Continue to your dashboard, bookings, provider tools, and saved service requests.
         </p>
 
         <div className="divider">
@@ -90,15 +92,14 @@ const LoginPage = () => {
         </form>
 
         <p className="terms-text">
-          By clicking Sign in, you agree to our Terms, Privacy Policy and Cookies Policy.
+          By clicking Login, you agree to our Terms, Privacy Policy and Cookies Policy.
         </p>
 
         <p className="footer-text">
-          Don’t have an account? <Link to="/signup">Sign up</Link>
+          Don't have an account? <Link to="/signup">Sign up</Link>
         </p>
-
-      </div>
-    </div>
+      </section>
+    </main>
   );
 };
 

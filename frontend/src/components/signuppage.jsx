@@ -91,11 +91,12 @@ const SignupPage = () => {
     <div className={`signup-container ${isLoaded ? "loaded" : ""}`}>
       <div className="signup-card">
 
-        <div className="logo">sideL</div>
+        <Link className="auth-logo" to="/">side<span>L</span></Link>
 
-        <h1 className="signup-title">Get Started</h1>
+        <p className="auth-kicker">Create account</p>
+        <h1 className="signup-title">Join sideL</h1>
         <p className="signup-subtitle">
-          Welcome to sideL. Let's create your account
+          Book trusted services, track requests, or apply as a provider.
         </p>
 
         <div className="divider">

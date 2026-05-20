@@ -1,0 +1,25 @@
+@import "./LoginPage.css";
+
+.signup-container {
+  padding-top: 48px;
+}
+
+.signup-card {
+  width: min(100%, 500px);
+}
+
+.signup-card .form-group {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.signup-card .form-group input[name="name"],
+.signup-card .form-group input[name="email"],
+.signup-card .form-group input[name="password"] {
+  grid-column: 1 / -1;
+}
+
+@media (max-width: 560px) {
+  .signup-card .form-group {
+    grid-template-columns: 1fr;
+  }
+}
