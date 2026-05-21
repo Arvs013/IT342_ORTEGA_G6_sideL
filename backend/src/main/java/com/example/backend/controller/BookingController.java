@@ -53,6 +53,10 @@ public class BookingController {
                 return ResponseEntity.badRequest().body("Invalid booking status.");
             }
 
+            if (!isValidStatusTransition(booking.getStatus(), upperStatus)) {
+                return ResponseEntity.badRequest().body("Invalid booking status transition.");
+            }
+
             booking.setStatus(upperStatus);
             return ResponseEntity.ok(bookingRepository.save(booking));
         }).orElse(ResponseEntity.notFound().build());
@@ -68,9 +72,27 @@ public class BookingController {
                 return ResponseEntity.badRequest().body("Receipt image is required.");
             }
 
+            if (!List.of("ACCEPTED", "IN_PROGRESS").contains(booking.getStatus())) {
+                return ResponseEntity.badRequest().body("Receipt can only be submitted for scheduled or in-progress bookings.");
+            }
+
             booking.setReceiptUrl(input.getReceiptUrl());
             booking.setStatus("COMPLETED");
             return ResponseEntity.ok(bookingRepository.save(booking));
         }).orElse(ResponseEntity.notFound().build());
+    }
+
+    private boolean isValidStatusTransition(String currentStatus, String nextStatus) {
+        if (currentStatus == null || currentStatus.equals(nextStatus)) {
+            return true;
+        }
+
+        return switch (currentStatus) {
+            case "PENDING" -> List.of("ACCEPTED", "REJECTED", "CANCELLED").contains(nextStatus);
+            case "ACCEPTED" -> List.of("IN_PROGRESS", "CANCELLED").contains(nextStatus);
+            case "IN_PROGRESS" -> List.of("COMPLETED", "CANCELLED").contains(nextStatus);
+            case "COMPLETED", "REJECTED", "CANCELLED" -> false;
+            default -> false;
+        };
     }
 }

@@ -15,6 +15,7 @@ const ClientBookings = () => {
   const [user, setUser] = useState(null);
   const [bookings, setBookings] = useState([]);
   const [receiptFiles, setReceiptFiles] = useState({});
+  const [reviewForms, setReviewForms] = useState({});
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [message, setMessage] = useState("");
@@ -136,9 +137,39 @@ const ClientBookings = () => {
     }
   };
 
+  const submitReview = async (booking) => {
+    const form = reviewForms[booking.bookingID] || { rating: 5, comment: "" };
+
+    if (!form.comment.trim()) {
+      setError("Please write a short review before submitting.");
+      return;
+    }
+
+    try {
+      setError("");
+      setMessage("");
+      await request(`/reviews/gig/${booking.gig.gigID}/client/${user.userID}`, {
+        method: "POST",
+        body: JSON.stringify({
+          rating: Number(form.rating),
+          comment: form.comment,
+        }),
+      });
+      setReviewForms((current) => ({
+        ...current,
+        [booking.bookingID]: { rating: 5, comment: "" },
+      }));
+      setMessage("Review posted successfully.");
+    } catch (err) {
+      setError(err.message || "Unable to submit review.");
+    }
+  };
+
   const renderBooking = (booking, isHistory = false) => {
     const isAccepted = booking.status === "ACCEPTED";
     const isInProgress = booking.status === "IN_PROGRESS";
+    const canReview = isHistory && booking.status === "COMPLETED" && booking.gig?.gigID;
+    const reviewForm = reviewForms[booking.bookingID] || { rating: 5, comment: "" };
     const statusLabel = isAccepted ? "SCHEDULED" : isInProgress ? "IN PROGRESS" : booking.status;
 
     return (
@@ -188,6 +219,41 @@ const ClientBookings = () => {
                 Cancel booking
               </button>
             )}
+          </div>
+        )}
+
+        {canReview && (
+          <div className="history-review-form">
+            <label>
+              Rating
+              <select
+                value={reviewForm.rating}
+                onChange={(event) => setReviewForms({
+                  ...reviewForms,
+                  [booking.bookingID]: { ...reviewForm, rating: event.target.value },
+                })}
+              >
+                <option value="5">5 - Excellent</option>
+                <option value="4">4 - Good</option>
+                <option value="3">3 - Fair</option>
+                <option value="2">2 - Poor</option>
+                <option value="1">1 - Bad</option>
+              </select>
+            </label>
+            <label>
+              Review
+              <textarea
+                placeholder="Share your experience with this completed service."
+                value={reviewForm.comment}
+                onChange={(event) => setReviewForms({
+                  ...reviewForms,
+                  [booking.bookingID]: { ...reviewForm, comment: event.target.value },
+                })}
+              />
+            </label>
+            <button className="primary-action compact-action" type="button" onClick={() => submitReview(booking)}>
+              Post review
+            </button>
           </div>
         )}
       </article>

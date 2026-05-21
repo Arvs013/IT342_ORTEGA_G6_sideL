@@ -36,6 +36,12 @@ public class GigEntity {
     @Column(name = "created_at")
     private LocalDateTime createdAt;
 
+    @Transient
+    private Long likeCount = 0L;
+
+    @Transient
+    private Boolean likedByCurrentUser = false;
+
     public GigEntity() {}
 
     public Integer getGigID() { return gigID; }
@@ -61,6 +67,12 @@ public class GigEntity {
 
     public LocalDateTime getCreatedAt() { return createdAt; }
     public void setCreatedAt(LocalDateTime createdAt) { this.createdAt = createdAt; }
+
+    public Long getLikeCount() { return likeCount; }
+    public void setLikeCount(Long likeCount) { this.likeCount = likeCount; }
+
+    public Boolean getLikedByCurrentUser() { return likedByCurrentUser; }
+    public void setLikedByCurrentUser(Boolean likedByCurrentUser) { this.likedByCurrentUser = likedByCurrentUser; }
 
     @PrePersist
     protected void onCreate() {

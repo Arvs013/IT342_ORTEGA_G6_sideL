@@ -498,6 +498,37 @@ button {
   max-width: 260px;
 }
 
+.history-review-form {
+  display: grid;
+  gap: 10px;
+  padding: 12px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: #f8fafb;
+}
+
+.history-review-form label {
+  display: grid;
+  gap: 7px;
+  color: var(--ink);
+  font-size: 13px;
+  font-weight: 800;
+}
+
+.history-review-form select,
+.history-review-form textarea {
+  width: 100%;
+  min-height: 42px;
+  padding: 10px 12px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+}
+
+.history-review-form textarea {
+  min-height: 86px;
+  resize: vertical;
+}
+
 .provider-booking-main {
   display: flex;
   align-items: flex-start;
@@ -685,15 +716,24 @@ button {
   top: 14px;
   right: 14px;
   display: grid;
-  width: 36px;
-  height: 36px;
+  min-width: 48px;
+  min-height: 36px;
   place-items: center;
+  grid-template-columns: auto auto;
+  gap: 4px;
+  padding: 0 10px;
   border: 1px solid var(--line);
-  border-radius: 50%;
+  border-radius: 999px;
   background: #ffffff;
   color: var(--muted);
-  font-size: 22px;
+  font-size: 20px;
   line-height: 1;
+}
+
+.heart-button small {
+  color: inherit;
+  font-size: 12px;
+  font-weight: 900;
 }
 
 .heart-button.liked {
@@ -803,21 +843,39 @@ button {
   font-weight: 800;
 }
 
-.profile-drawer {
+.profile-modal-backdrop {
   position: fixed;
   top: 0;
   right: 0;
+  bottom: 0;
+  left: 0;
   z-index: 20;
+  display: grid;
+  place-items: center;
+  padding: 24px;
+  background: rgba(15, 23, 42, 0.45);
+  backdrop-filter: blur(3px);
+}
+
+.profile-modal {
   display: grid;
   align-content: start;
   gap: 16px;
-  width: min(100%, 460px);
-  height: 100vh;
+  width: min(100%, 920px);
+  max-height: min(86vh, 780px);
   padding: 24px;
   overflow-y: auto;
-  border-left: 1px solid var(--line);
+  border: 1px solid var(--line);
+  border-radius: 12px;
   background: #ffffff;
-  box-shadow: -18px 0 40px rgba(23, 32, 42, 0.12);
+  box-shadow: 0 24px 70px rgba(23, 32, 42, 0.24);
+}
+
+.profile-modal-content {
+  display: grid;
+  grid-template-columns: minmax(0, 1.1fr) minmax(300px, 0.9fr);
+  gap: 16px;
+  align-items: start;
 }
 
 .profile-drawer-header {
@@ -839,7 +897,6 @@ button {
   border-radius: 8px;
   background: #ffffff;
   color: var(--ink);
-  cursor: pointer;
 }
 
 .profile-menu {
@@ -1140,6 +1197,35 @@ button {
   align-items: flex-start;
 }
 
+.applicant-details {
+  min-width: 0;
+}
+
+.application-images {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(118px, 1fr));
+  gap: 10px;
+  max-width: 620px;
+  margin-top: 12px;
+}
+
+.application-image-card {
+  display: grid;
+  gap: 7px;
+  color: var(--blue);
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.application-image-card img {
+  width: 100%;
+  height: 92px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  object-fit: cover;
+  background: #edf2fa;
+}
+
 .application-link {
   display: inline-block;
   margin-top: 10px;
@@ -1279,12 +1365,18 @@ button {
     min-height: 44px;
   }
 
-  .profile-drawer {
-    width: 100%;
-  }
-
+  .profile-modal-backdrop,
   .booking-modal-backdrop {
     padding: 12px;
+  }
+
+  .profile-modal {
+    max-height: 92vh;
+    padding: 18px;
+  }
+
+  .profile-modal-content {
+    grid-template-columns: 1fr;
   }
 
   .booking-modal-header,
