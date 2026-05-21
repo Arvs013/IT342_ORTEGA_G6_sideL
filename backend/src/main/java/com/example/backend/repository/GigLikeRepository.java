@@ -4,6 +4,7 @@ import com.example.backend.entity.GigLikeEntity;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 
+import java.util.List;
 import java.util.Optional;
 
 @Repository
@@ -14,4 +15,6 @@ public interface GigLikeRepository extends JpaRepository<GigLikeEntity, Integer>
     boolean existsByGig_GigIDAndUser_UserID(Integer gigId, Integer userId);
 
     Optional<GigLikeEntity> findByGig_GigIDAndUser_UserID(Integer gigId, Integer userId);
+
+    List<GigLikeEntity> findByGig_GigID(Integer gigId);
 }

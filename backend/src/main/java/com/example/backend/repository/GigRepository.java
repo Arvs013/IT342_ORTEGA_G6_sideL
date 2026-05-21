@@ -11,6 +11,10 @@ public interface GigRepository extends JpaRepository<GigEntity, Integer> {
     // Clients browse gigs filtering by category (e.g., PLUMBING, GADGETS, CAR)
     List<GigEntity> findByCategory(String category);
 
+    List<GigEntity> findByStatus(String status);
+
+    List<GigEntity> findByCategoryAndStatus(String category, String status);
+
     // Providers view their own custom uploaded services inside their dashboard
     List<GigEntity> findByProvider_UserID(Integer providerId);
 }

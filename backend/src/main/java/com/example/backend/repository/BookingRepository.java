@@ -14,5 +14,7 @@ public interface BookingRepository extends JpaRepository<BookingEntity, Integer>
     // Providers look up incoming work requests submitted to them
     List<BookingEntity> findByGig_Provider_UserID(Integer providerId);
 
+    boolean existsByGig_GigID(Integer gigId);
+
     List<BookingEntity> findByClient_UserIDAndGig_GigIDAndStatus(Integer clientId, Integer gigId, String status);
 }

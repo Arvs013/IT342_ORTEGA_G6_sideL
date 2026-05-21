@@ -37,6 +37,7 @@ public class ServiceController {
         String normalizedKeyword = keyword == null ? "" : keyword.trim().toLowerCase();
 
         List<GigEntity> services = gigRepository.findAll().stream()
+                .filter(this::isActiveGig)
                 .filter(gig -> normalizedCategory.isEmpty() || normalize(gig.getCategory()).equals(normalizedCategory))
                 .filter(gig -> normalizedKeyword.isEmpty() || serviceMatchesKeyword(gig, normalizedKeyword))
                 .sorted(Comparator.comparing(GigEntity::getCreatedAt, Comparator.nullsLast(Comparator.reverseOrder())))
@@ -101,6 +102,10 @@ public class ServiceController {
 
     private String safe(String value) {
         return value == null ? "" : value;
+    }
+
+    private boolean isActiveGig(GigEntity gig) {
+        return gig.getStatus() == null || gig.getStatus().isBlank() || "ACTIVE".equalsIgnoreCase(gig.getStatus());
     }
 
     private void attachLikeData(GigEntity gig, Integer userId) {
