@@ -1,8 +1,10 @@
 package com.example.backend.controller;
 
 import com.example.backend.entity.ProviderApplicationEntity;
+import com.example.backend.entity.ReportEntity;
 import com.example.backend.entity.UserEntity;
 import com.example.backend.repository.ProviderApplicationRepository;
+import com.example.backend.repository.ReportRepository;
 import com.example.backend.repository.UserRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
@@ -20,10 +22,18 @@ public class AdminController {
     @Autowired
     private ProviderApplicationRepository providerApplicationRepository;
 
+    @Autowired
+    private ReportRepository reportRepository;
+
     // 1. Get all pending provider applicants
     @GetMapping("/applicants")
     public ResponseEntity<List<ProviderApplicationEntity>> getPendingApplicants() {
         return ResponseEntity.ok(providerApplicationRepository.findByStatus("PENDING"));
+    }
+
+    @GetMapping("/reports")
+    public ResponseEntity<List<ReportEntity>> getReports() {
+        return ResponseEntity.ok(reportRepository.findAllByOrderByCreatedAtDesc());
     }
 
     // 2. Accept or Reject a provider applicant
