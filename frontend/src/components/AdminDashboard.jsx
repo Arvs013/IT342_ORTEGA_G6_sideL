@@ -3,6 +3,25 @@ import { Link, useNavigate } from "react-router-dom";
 import "../styles/dashboard.css";
 
 const API_BASE_URL = "http://localhost:8080/api";
+const API_ORIGIN = API_BASE_URL.replace("/api", "");
+
+const getApplicationImages = (imageText = "") => {
+  if (!imageText) return [];
+
+  const uploadMatches = imageText.match(/\/uploads\/gigs\/[^,\s;]+?\.(?:png|jpe?g|gif|webp)/gi);
+  if (uploadMatches?.length) {
+    return uploadMatches.slice(0, 5);
+  }
+
+  return imageText
+    .split(/[\n,;]+/)
+    .map((image) => image.trim())
+    .filter(Boolean)
+    .slice(0, 5);
+};
+
+const getImageSource = (image) =>
+  image?.startsWith("/uploads/") ? `${API_ORIGIN}${image}` : image;
 
 const AdminDashboard = () => {
   const navigate = useNavigate();
@@ -172,31 +191,47 @@ const AdminDashboard = () => {
           </div>
 
           <div className="data-list">
-            {applicants.map((applicant) => (
-              <article className="data-row applicant-row" key={applicant.applicationID}>
-                <div>
-                  <span className="pill">{applicant.category}</span>
-                  <h4>{applicant.title}</h4>
-                  <p>{applicant.user?.firstname} {applicant.user?.lastname} - {applicant.email}</p>
-                  <p>{applicant.address}</p>
-                  <p>{applicant.description}</p>
-                  {applicant.requirements && <p>Requirements: {applicant.requirements}</p>}
-                  {applicant.image && (
-                    <a className="application-link" href={applicant.image} target="_blank" rel="noreferrer">
-                      View image
-                    </a>
-                  )}
-                </div>
-                <div className="button-group">
-                  <button type="button" onClick={() => updateApplicant(applicant.applicationID, "APPROVED")}>
-                    Approve
-                  </button>
-                  <button type="button" onClick={() => updateApplicant(applicant.applicationID, "REJECTED")}>
-                    Reject
-                  </button>
-                </div>
-              </article>
-            ))}
+            {applicants.map((applicant) => {
+              const images = getApplicationImages(applicant.image);
+
+              return (
+                <article className="data-row applicant-row" key={applicant.applicationID}>
+                  <div className="applicant-details">
+                    <span className="pill">{applicant.category}</span>
+                    <h4>{applicant.title}</h4>
+                    <p>{applicant.user?.firstname} {applicant.user?.lastname} - {applicant.email}</p>
+                    <p>{applicant.address}</p>
+                    <p>{applicant.description}</p>
+                    {applicant.requirements && <p>Requirements: {applicant.requirements}</p>}
+
+                    {images.length > 0 && (
+                      <div className="application-images" aria-label="Provider application images">
+                        {images.map((image, index) => (
+                          <a
+                            className="application-image-card"
+                            href={getImageSource(image)}
+                            key={`${applicant.applicationID}-${image}`}
+                            target="_blank"
+                            rel="noreferrer"
+                          >
+                            <img src={getImageSource(image)} alt={`${applicant.title} work ${index + 1}`} loading="lazy" />
+                            <span>View image {index + 1}</span>
+                          </a>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                  <div className="button-group">
+                    <button type="button" onClick={() => updateApplicant(applicant.applicationID, "APPROVED")}>
+                      Approve
+                    </button>
+                    <button type="button" onClick={() => updateApplicant(applicant.applicationID, "REJECTED")}>
+                      Reject
+                    </button>
+                  </div>
+                </article>
+              );
+            })}
           </div>
 
           {!applicants.length && !loading && (

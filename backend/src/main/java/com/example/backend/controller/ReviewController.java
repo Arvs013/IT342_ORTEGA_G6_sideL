@@ -6,6 +6,7 @@ import com.example.backend.entity.UserEntity;
 import com.example.backend.repository.GigRepository;
 import com.example.backend.repository.ReviewRepository;
 import com.example.backend.repository.UserRepository;
+import com.example.backend.repository.BookingRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -24,6 +25,9 @@ public class ReviewController {
 
     @Autowired
     private UserRepository userRepository;
+
+    @Autowired
+    private BookingRepository bookingRepository;
 
     @GetMapping("/gig/{gigId}")
     public ResponseEntity<List<ReviewEntity>> getGigReviews(@PathVariable Integer gigId) {
@@ -50,6 +54,10 @@ public class ReviewController {
 
         if (gig == null || client == null) {
             return ResponseEntity.notFound().build();
+        }
+
+        if (bookingRepository.findByClient_UserIDAndGig_GigIDAndStatus(clientId, gigId, "COMPLETED").isEmpty()) {
+            return ResponseEntity.badRequest().body("You can only review a service after a completed booking.");
         }
 
         review.setGig(gig);

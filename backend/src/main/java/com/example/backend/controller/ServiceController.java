@@ -2,6 +2,7 @@ package com.example.backend.controller;
 
 import com.example.backend.entity.GigEntity;
 import com.example.backend.entity.UserEntity;
+import com.example.backend.repository.GigLikeRepository;
 import com.example.backend.repository.GigRepository;
 import com.example.backend.repository.UserRepository;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -21,12 +22,16 @@ public class ServiceController {
     private GigRepository gigRepository;
 
     @Autowired
+    private GigLikeRepository gigLikeRepository;
+
+    @Autowired
     private UserRepository userRepository;
 
     @GetMapping("/services")
     public ResponseEntity<List<GigEntity>> getServices(
             @RequestParam(required = false) String category,
-            @RequestParam(required = false) String keyword) {
+            @RequestParam(required = false) String keyword,
+            @RequestParam(required = false) Integer userId) {
 
         String normalizedCategory = normalize(category);
         String normalizedKeyword = keyword == null ? "" : keyword.trim().toLowerCase();
@@ -37,6 +42,7 @@ public class ServiceController {
                 .sorted(Comparator.comparing(GigEntity::getCreatedAt, Comparator.nullsLast(Comparator.reverseOrder())))
                 .toList();
 
+        services.forEach(gig -> attachLikeData(gig, userId));
         return ResponseEntity.ok(services);
     }
 
@@ -57,7 +63,9 @@ public class ServiceController {
             }
 
             Map<String, Object> response = providerResponse(provider);
-            response.put("services", gigRepository.findByProvider_UserID(provider.getUserID()));
+            List<GigEntity> services = gigRepository.findByProvider_UserID(provider.getUserID());
+            services.forEach(gig -> attachLikeData(gig, id));
+            response.put("services", services);
             return ResponseEntity.ok(response);
         }).orElse(ResponseEntity.notFound().build());
     }
@@ -93,5 +101,12 @@ public class ServiceController {
 
     private String safe(String value) {
         return value == null ? "" : value;
+    }
+
+    private void attachLikeData(GigEntity gig, Integer userId) {
+        gig.setLikeCount(gigLikeRepository.countByGig_GigID(gig.getGigID()));
+        gig.setLikedByCurrentUser(
+                userId != null && gigLikeRepository.existsByGig_GigIDAndUser_UserID(gig.getGigID(), userId)
+        );
     }
 }

@@ -1,8 +1,10 @@
 package com.example.backend.controller;
 
 import com.example.backend.entity.GigEntity;
+import com.example.backend.entity.GigLikeEntity;
 import com.example.backend.entity.ProviderApplicationEntity;
 import com.example.backend.entity.UserEntity;
+import com.example.backend.repository.GigLikeRepository;
 import com.example.backend.repository.GigRepository;
 import com.example.backend.repository.ProviderApplicationRepository;
 import com.example.backend.repository.UserRepository;
@@ -20,6 +22,9 @@ public class GigController {
 
     @Autowired
     private GigRepository gigRepository;
+
+    @Autowired
+    private GigLikeRepository gigLikeRepository;
 
     @Autowired
     private UserRepository userRepository;
@@ -69,17 +74,50 @@ public class GigController {
 
     // 3. Browse all gigs or filter by category (PLUMBING, GADGETS, CAR, etc.)
     @GetMapping
-    public ResponseEntity<List<GigEntity>> getAllGigs(@RequestParam(required = false) String category) {
+    public ResponseEntity<List<GigEntity>> getAllGigs(
+            @RequestParam(required = false) String category,
+            @RequestParam(required = false) Integer userId) {
+        List<GigEntity> gigs;
         if (category != null && !category.isEmpty()) {
-            return ResponseEntity.ok(gigRepository.findByCategory(category.toUpperCase()));
+            gigs = gigRepository.findByCategory(category.toUpperCase());
+        } else {
+            gigs = gigRepository.findAll();
         }
-        return ResponseEntity.ok(gigRepository.findAll());
+
+        gigs.forEach(gig -> attachLikeData(gig, userId));
+        return ResponseEntity.ok(gigs);
     }
 
     // 4. Provider views their own posted gigs
     @GetMapping("/provider/{providerId}")
     public ResponseEntity<List<GigEntity>> getProviderGigs(@PathVariable Integer providerId) {
-        return ResponseEntity.ok(gigRepository.findByProvider_UserID(providerId));
+        List<GigEntity> gigs = gigRepository.findByProvider_UserID(providerId);
+        gigs.forEach(gig -> attachLikeData(gig, providerId));
+        return ResponseEntity.ok(gigs);
+    }
+
+    @PutMapping("/{gigId}/like/{userId}")
+    public ResponseEntity<?> toggleGigLike(
+            @PathVariable Integer gigId,
+            @PathVariable Integer userId,
+            @RequestParam Boolean liked) {
+
+        return gigRepository.findById(gigId).flatMap(gig ->
+                userRepository.findById(userId).map(user -> {
+                    var existingLike = gigLikeRepository.findByGig_GigIDAndUser_UserID(gigId, userId);
+
+                    if (Boolean.TRUE.equals(liked) && existingLike.isEmpty()) {
+                        gigLikeRepository.save(new GigLikeEntity(gig, user));
+                    }
+
+                    if (Boolean.FALSE.equals(liked)) {
+                        existingLike.ifPresent(gigLikeRepository::delete);
+                    }
+
+                    attachLikeData(gig, userId);
+                    return ResponseEntity.ok(gig);
+                })
+        ).orElse(ResponseEntity.notFound().build());
     }
 
     @PutMapping("/{gigId}/provider/{providerId}")
@@ -116,5 +154,12 @@ public class GigController {
                 .map(String::trim)
                 .filter(url -> !url.isEmpty())
                 .collect(Collectors.toList());
+    }
+
+    private void attachLikeData(GigEntity gig, Integer userId) {
+        gig.setLikeCount(gigLikeRepository.countByGig_GigID(gig.getGigID()));
+        gig.setLikedByCurrentUser(
+                userId != null && gigLikeRepository.existsByGig_GigIDAndUser_UserID(gig.getGigID(), userId)
+        );
     }
 }
