@@ -33,6 +33,9 @@ public class GigEntity {
     @Column(name = "image_urls", columnDefinition = "TEXT")
     private String imageUrls;
 
+    @Column(nullable = false, length = 20)
+    private String status = "ACTIVE";
+
     @Column(name = "created_at")
     private LocalDateTime createdAt;
 
@@ -64,6 +67,9 @@ public class GigEntity {
 
     public String getImageUrls() { return imageUrls; }
     public void setImageUrls(String imageUrls) { this.imageUrls = imageUrls; }
+
+    public String getStatus() { return status; }
+    public void setStatus(String status) { this.status = status; }
 
     public LocalDateTime getCreatedAt() { return createdAt; }
     public void setCreatedAt(LocalDateTime createdAt) { this.createdAt = createdAt; }

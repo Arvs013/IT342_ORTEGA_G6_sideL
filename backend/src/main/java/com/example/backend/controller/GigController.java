@@ -6,7 +6,9 @@ import com.example.backend.entity.ProviderApplicationEntity;
 import com.example.backend.entity.UserEntity;
 import com.example.backend.repository.GigLikeRepository;
 import com.example.backend.repository.GigRepository;
+import com.example.backend.repository.BookingRepository;
 import com.example.backend.repository.ProviderApplicationRepository;
+import com.example.backend.repository.ReviewRepository;
 import com.example.backend.repository.UserRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
@@ -25,6 +27,12 @@ public class GigController {
 
     @Autowired
     private GigLikeRepository gigLikeRepository;
+
+    @Autowired
+    private BookingRepository bookingRepository;
+
+    @Autowired
+    private ReviewRepository reviewRepository;
 
     @Autowired
     private UserRepository userRepository;
@@ -67,6 +75,7 @@ public class GigController {
             }
             gig.setImageUrls(String.join("\n", images));
             gig.setProvider(user);
+            gig.setStatus("ACTIVE");
             GigEntity savedGig = gigRepository.save(gig);
             return ResponseEntity.ok(savedGig);
         }).orElse(ResponseEntity.notFound().build());
@@ -79,9 +88,15 @@ public class GigController {
             @RequestParam(required = false) Integer userId) {
         List<GigEntity> gigs;
         if (category != null && !category.isEmpty()) {
-            gigs = gigRepository.findByCategory(category.toUpperCase());
+            String upperCategory = category.toUpperCase();
+            gigs = gigRepository.findAll().stream()
+                    .filter(this::isActiveGig)
+                    .filter(gig -> upperCategory.equalsIgnoreCase(gig.getCategory()))
+                    .toList();
         } else {
-            gigs = gigRepository.findAll();
+            gigs = gigRepository.findAll().stream()
+                    .filter(this::isActiveGig)
+                    .toList();
         }
 
         gigs.forEach(gig -> attachLikeData(gig, userId));
@@ -145,6 +160,48 @@ public class GigController {
         }).orElse(ResponseEntity.notFound().build());
     }
 
+    @PutMapping("/{gigId}/provider/{providerId}/status")
+    public ResponseEntity<?> updateGigStatus(
+            @PathVariable Integer gigId,
+            @PathVariable Integer providerId,
+            @RequestParam String status) {
+
+        return gigRepository.findById(gigId).map(gig -> {
+            if (gig.getProvider() == null || !gig.getProvider().getUserID().equals(providerId)) {
+                return ResponseEntity.badRequest().body("You can only update your own gigs.");
+            }
+
+            String upperStatus = status.toUpperCase();
+            if (!List.of("ACTIVE", "DISABLED").contains(upperStatus)) {
+                return ResponseEntity.badRequest().body("Invalid gig status.");
+            }
+
+            gig.setStatus(upperStatus);
+            attachLikeData(gig, providerId);
+            return ResponseEntity.ok(gigRepository.save(gig));
+        }).orElse(ResponseEntity.notFound().build());
+    }
+
+    @DeleteMapping("/{gigId}/provider/{providerId}")
+    public ResponseEntity<?> deleteGig(
+            @PathVariable Integer gigId,
+            @PathVariable Integer providerId) {
+
+        return gigRepository.findById(gigId).map(gig -> {
+            if (gig.getProvider() == null || !gig.getProvider().getUserID().equals(providerId)) {
+                return ResponseEntity.badRequest().body("You can only delete your own gigs.");
+            }
+
+            if (bookingRepository.existsByGig_GigID(gigId) || reviewRepository.existsByGig_GigID(gigId)) {
+                return ResponseEntity.badRequest().body("This gig has bookings or reviews. Disable it instead of deleting.");
+            }
+
+            gigLikeRepository.deleteAll(gigLikeRepository.findByGig_GigID(gigId));
+            gigRepository.delete(gig);
+            return ResponseEntity.ok("Gig deleted.");
+        }).orElse(ResponseEntity.notFound().build());
+    }
+
     private List<String> parseImageUrls(String imageUrls) {
         if (imageUrls == null || imageUrls.isBlank()) {
             return List.of();
@@ -161,5 +218,9 @@ public class GigController {
         gig.setLikedByCurrentUser(
                 userId != null && gigLikeRepository.existsByGig_GigIDAndUser_UserID(gig.getGigID(), userId)
         );
+    }
+
+    private boolean isActiveGig(GigEntity gig) {
+        return gig.getStatus() == null || gig.getStatus().isBlank() || "ACTIVE".equalsIgnoreCase(gig.getStatus());
     }
 }

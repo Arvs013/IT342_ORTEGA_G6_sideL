@@ -56,6 +56,8 @@ const getNextBookingStatuses = (status) => {
   }
 };
 
+const formatStatus = (status = "") => status.replace(/_/g, " ");
+
 const normalizeCategory = (category = "") =>
   category.toString().trim().toUpperCase().replace(/[\s-]+/g, "_");
 
@@ -414,6 +416,37 @@ const Dashboard = () => {
     }
   };
 
+  const updateGigStatus = async (gig, status) => {
+    try {
+      setActiveMessage("");
+      setError("");
+      await request(`/gigs/${gig.gigID}/provider/${user.userID}/status?status=${status}`, {
+        method: "PUT",
+      });
+      await loadDashboard(user);
+      setActiveMessage(`Gig marked as ${status.toLowerCase()}.`);
+    } catch (err) {
+      setError(err.message || "Unable to update gig status.");
+    }
+  };
+
+  const deleteGig = async (gig) => {
+    const confirmed = window.confirm(`Delete "${gig.title}"? Gigs with bookings or reviews should be disabled instead.`);
+    if (!confirmed) return;
+
+    try {
+      setActiveMessage("");
+      setError("");
+      await request(`/gigs/${gig.gigID}/provider/${user.userID}`, {
+        method: "DELETE",
+      });
+      await loadDashboard(user);
+      setActiveMessage("Gig deleted.");
+    } catch (err) {
+      setError(err.message || "Unable to delete gig.");
+    }
+  };
+
   const updateBookingStatus = async (bookingId, status) => {
     try {
       setActiveMessage("");
@@ -706,8 +739,10 @@ const Dashboard = () => {
             <div className="provider-gig-list">
               {myGigs.map((gig) => {
                 const images = getGigImages(gig);
+                const gigStatus = gig.status || "ACTIVE";
+                const isDisabled = gigStatus === "DISABLED";
                 return (
-                  <article className="provider-gig-row" key={gig.gigID}>
+                  <article className={`provider-gig-row ${isDisabled ? "disabled-gig" : ""}`} key={gig.gigID}>
                     <div className="provider-gig-thumb">
                       {images.length ? (
                         <img src={getImageSource(images[0])} alt={`${gig.title} preview`} loading="lazy" />
@@ -716,13 +751,30 @@ const Dashboard = () => {
                       )}
                     </div>
                     <div>
-                      <span className="pill">{gig.category}</span>
+                      <div className="inline-pills">
+                        <span className="pill">{gig.category}</span>
+                        <span className={`status-chip ${isDisabled ? "danger-status" : "success-status"}`}>
+                          {gigStatus}
+                        </span>
+                      </div>
                       <h4>{gig.title}</h4>
-                      <p>PHP {Number(gig.price || 0).toLocaleString()} - {images.length}/5 images</p>
+                      <p>PHP {Number(gig.price || 0).toLocaleString()} - {images.length}/5 images - {gig.likeCount || 0} likes</p>
                     </div>
-                    <button className="secondary-inline" type="button" onClick={() => openEditGigForm(gig)}>
-                      Edit
-                    </button>
+                    <div className="provider-gig-actions">
+                      <button className="secondary-inline" type="button" onClick={() => openEditGigForm(gig)}>
+                        Edit
+                      </button>
+                      <button
+                        className="secondary-inline"
+                        type="button"
+                        onClick={() => updateGigStatus(gig, isDisabled ? "ACTIVE" : "DISABLED")}
+                      >
+                        {isDisabled ? "Activate" : "Disable"}
+                      </button>
+                      <button className="secondary-inline danger-inline" type="button" onClick={() => deleteGig(gig)}>
+                        Delete
+                      </button>
+                    </div>
                   </article>
                 );
               })}
@@ -753,15 +805,32 @@ const Dashboard = () => {
                       <h4>{booking.gig?.title || "Booked service"}</h4>
                       <p>{new Date(booking.bookingDate).toLocaleString()}</p>
                     </div>
-                    <span className="status-chip">{booking.status}</span>
+                    <span className="status-chip">{formatStatus(booking.status)}</span>
                   </div>
 
                   <div className="provider-booking-details">
-                    <p><strong>Client:</strong> {booking.contactName || `${booking.client?.firstname || ""} ${booking.client?.lastname || ""}`.trim() || "Client"}</p>
-                    <p><strong>Email:</strong> {booking.contactEmail || booking.client?.email || "No email provided"}</p>
-                    <p><strong>Phone:</strong> {booking.contactPhone || booking.client?.phoneNumber || "No phone provided"}</p>
-                    <p><strong>Address:</strong> {booking.serviceAddress || booking.client?.address || "No address provided"}</p>
-                    {booking.clientNotes && <p><strong>Notes:</strong> {booking.clientNotes}</p>}
+                    <div>
+                      <span>Client</span>
+                      <strong>{booking.contactName || `${booking.client?.firstname || ""} ${booking.client?.lastname || ""}`.trim() || "Client"}</strong>
+                    </div>
+                    <div>
+                      <span>Email</span>
+                      <strong>{booking.contactEmail || booking.client?.email || "No email provided"}</strong>
+                    </div>
+                    <div>
+                      <span>Phone</span>
+                      <strong>{booking.contactPhone || booking.client?.phoneNumber || "No phone provided"}</strong>
+                    </div>
+                    <div>
+                      <span>Address</span>
+                      <strong>{booking.serviceAddress || booking.client?.address || "No address provided"}</strong>
+                    </div>
+                    {booking.clientNotes && (
+                      <div className="wide-field">
+                        <span>Notes</span>
+                        <strong>{booking.clientNotes}</strong>
+                      </div>
+                    )}
                   </div>
 
                   <div className="button-group">
@@ -771,7 +840,7 @@ const Dashboard = () => {
                         type="button"
                         onClick={() => updateBookingStatus(booking.bookingID, status)}
                       >
-                        {status}
+                        {formatStatus(status)}
                       </button>
                     ))}
                     {!getNextBookingStatuses(booking.status).length && (

@@ -11,4 +11,6 @@ public interface ReviewRepository extends JpaRepository<ReviewEntity, Integer> {
     List<ReviewEntity> findByGig_GigID(Integer gigId);
 
     List<ReviewEntity> findByGig_Provider_UserID(Integer providerId);
+
+    boolean existsByGig_GigID(Integer gigId);
 }
