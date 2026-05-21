@@ -89,6 +89,8 @@ const Dashboard = () => {
   const [selectedCategory, setSelectedCategory] = useState("ALL");
   const [searchTerm, setSearchTerm] = useState("");
   const [bookingGig, setBookingGig] = useState(null);
+  const [reportModal, setReportModal] = useState(null);
+  const [reportForm, setReportForm] = useState({ reason: "Issue with client", details: "" });
   const [bookingForm, setBookingForm] = useState({
     bookingDate: "",
     firstname: "",
@@ -426,6 +428,50 @@ const Dashboard = () => {
     }
   };
 
+  const openClientReportModal = (booking) => {
+    setReportModal({
+      booking,
+      reportedUser: booking.client,
+      label: booking.contactName || `${booking.client?.firstname || "Client"} ${booking.client?.lastname || ""}`.trim(),
+    });
+    setReportForm({ reason: "Issue with client", details: "" });
+    setError("");
+    setActiveMessage("");
+  };
+
+  const submitReport = async (event) => {
+    event.preventDefault();
+
+    if (!reportModal?.reportedUser?.userID) {
+      setError("Cannot report this client because the account details are missing.");
+      return;
+    }
+    if (!reportForm.details.trim()) {
+      setError("Please explain what happened before submitting the report.");
+      return;
+    }
+
+    try {
+      setError("");
+      setActiveMessage("");
+      await request("/reports", {
+        method: "POST",
+        body: JSON.stringify({
+          reporterId: user.userID,
+          reportedUserId: reportModal.reportedUser.userID,
+          bookingId: reportModal.booking.bookingID,
+          reason: reportForm.reason,
+          details: reportForm.details,
+        }),
+      });
+      setReportModal(null);
+      setReportForm({ reason: "Issue with client", details: "" });
+      setActiveMessage("Report submitted. Admin will review it.");
+    } catch (err) {
+      setError(err.message || "Unable to submit report.");
+    }
+  };
+
   const applyAsProvider = async (event) => {
     event.preventDefault();
 
@@ -731,6 +777,9 @@ const Dashboard = () => {
                     {!getNextBookingStatuses(booking.status).length && (
                       <span className="muted-text">No more actions available.</span>
                     )}
+                    <button className="danger-inline" type="button" onClick={() => openClientReportModal(booking)}>
+                      Report client
+                    </button>
                   </div>
                 </article>
               ))}
@@ -1011,6 +1060,62 @@ const Dashboard = () => {
                 <p className="muted-text">Reviews can be posted from your booking history after a completed service.</p>
               </section>
             </div>
+          </section>
+        </div>
+      )}
+
+      {reportModal && (
+        <div className="booking-modal-backdrop" role="presentation" onClick={() => setReportModal(null)}>
+          <section
+            className="booking-modal report-modal"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="provider-report-modal-title"
+            onClick={(event) => event.stopPropagation()}
+          >
+            <div className="booking-modal-header">
+              <div>
+                <p className="dashboard-kicker">Report client</p>
+                <h2 id="provider-report-modal-title">{reportModal.label || "Client"}</h2>
+              </div>
+              <button className="secondary-inline" type="button" onClick={() => setReportModal(null)}>
+                Close
+              </button>
+            </div>
+
+            <form className="booking-form report-form" onSubmit={submitReport}>
+              <label>
+                Reason
+                <select
+                  value={reportForm.reason}
+                  onChange={(event) => setReportForm({ ...reportForm, reason: event.target.value })}
+                >
+                  <option value="Issue with client">Issue with client</option>
+                  <option value="No show">No show</option>
+                  <option value="Rude behavior">Rude behavior</option>
+                  <option value="Payment conflict">Payment conflict</option>
+                  <option value="Safety concern">Safety concern</option>
+                  <option value="Other">Other</option>
+                </select>
+              </label>
+              <label className="wide-field">
+                Details
+                <textarea
+                  placeholder="Explain what happened so admin can review it."
+                  value={reportForm.details}
+                  onChange={(event) => setReportForm({ ...reportForm, details: event.target.value })}
+                  required
+                />
+              </label>
+              <div className="form-actions">
+                <button className="secondary-inline" type="button" onClick={() => setReportModal(null)}>
+                  Cancel
+                </button>
+                <button className="primary-action" type="submit">
+                  Submit report
+                </button>
+              </div>
+            </form>
           </section>
         </div>
       )}

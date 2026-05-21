@@ -29,6 +29,7 @@ const AdminDashboard = () => {
   const [applicants, setApplicants] = useState([]);
   const [users, setUsers] = useState([]);
   const [gigs, setGigs] = useState([]);
+  const [reports, setReports] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [message, setMessage] = useState("");
@@ -66,15 +67,17 @@ const AdminDashboard = () => {
     setError("");
 
     try {
-      const [pendingApplicants, allUsers, allGigs] = await Promise.all([
+      const [pendingApplicants, allUsers, allGigs, allReports] = await Promise.all([
         request("/admin/applicants"),
         request("/users"),
         request("/gigs"),
+        request("/admin/reports"),
       ]);
 
       setApplicants(pendingApplicants);
       setUsers(allUsers);
       setGigs(allGigs);
+      setReports(allReports);
     } catch (err) {
       setError(err.message || "Could not load admin dashboard.");
     } finally {
@@ -129,6 +132,7 @@ const AdminDashboard = () => {
 
         <nav className="dashboard-nav" aria-label="Admin sections">
           <a href="#overview">Overview</a>
+          <a href="#reports">Reports</a>
           <a href="#applicants">Applicants</a>
           <a href="#users">Users</a>
           <a href="#gigs">Gigs</a>
@@ -179,7 +183,51 @@ const AdminDashboard = () => {
               <strong>{gigs.length}</strong>
               <span>Posted gigs</span>
             </article>
+            <article>
+              <strong>{reports.length}</strong>
+              <span>User reports</span>
+            </article>
           </div>
+        </section>
+
+        <section className="dashboard-panel" id="reports">
+          <div className="section-heading">
+            <div>
+              <p className="dashboard-kicker">Conflict reports</p>
+              <h3>Client and provider reports</h3>
+            </div>
+            <span className="status-chip">{reports.length} reports</span>
+          </div>
+
+          <div className="data-list">
+            {reports.map((report) => (
+              <article className="data-row report-row" key={report.reportID}>
+                <div>
+                  <span className="pill">{report.reason}</span>
+                  <h4>
+                    {report.reporter?.firstname || "User"} reported {report.reportedUser?.firstname || "User"}
+                  </h4>
+                  <p>
+                    Reporter: {report.reporter?.firstname} {report.reporter?.lastname} - {report.reporter?.email}
+                  </p>
+                  <p>
+                    Reported: {report.reportedUser?.firstname} {report.reportedUser?.lastname} - {report.reportedUser?.email}
+                  </p>
+                  {report.booking && (
+                    <p>
+                      Booking: {report.booking.gig?.title || "Service"} - {report.booking.status}
+                    </p>
+                  )}
+                  <p>{report.details}</p>
+                </div>
+                <span className="status-chip">{report.status}</span>
+              </article>
+            ))}
+          </div>
+
+          {!reports.length && !loading && (
+            <p className="muted-text">No client or provider reports yet.</p>
+          )}
         </section>
 
         <section className="dashboard-panel" id="applicants">

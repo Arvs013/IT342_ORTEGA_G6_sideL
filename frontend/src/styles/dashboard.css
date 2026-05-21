@@ -997,6 +997,7 @@ button {
 .profile-edit-form input,
 .profile-edit-form textarea,
 .booking-form input,
+.booking-form select,
 .booking-form textarea {
   width: 100%;
   min-height: 44px;
@@ -1033,6 +1034,14 @@ button {
   border-radius: 8px;
   background: #ffffff;
   box-shadow: 0 24px 70px rgba(16, 33, 26, 0.22);
+}
+
+.report-modal {
+  max-width: 640px;
+}
+
+.report-form {
+  grid-template-columns: 1fr;
 }
 
 .booking-modal-header,
@@ -1166,6 +1175,22 @@ button {
   background: #ffffff;
   color: var(--ink);
   font-weight: 800;
+}
+
+.danger-inline {
+  border-color: #f0c3c3;
+  color: var(--red);
+}
+
+.danger-inline:hover {
+  border-color: var(--red);
+  background: #fff0f0;
+  color: var(--red);
+}
+
+.button-group .danger-inline {
+  border-color: #f0c3c3;
+  color: var(--red);
 }
 
 .split-grid {
