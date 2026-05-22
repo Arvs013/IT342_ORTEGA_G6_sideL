@@ -272,7 +272,7 @@ button {
 }
 
 .marketplace-content {
-  width: min(100%, 1220px);
+  width: min(100%, 1440px);
   margin: 0 auto;
 }
 
@@ -1007,8 +1007,8 @@ button {
 
 .gig-grid {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 16px;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 14px;
 }
 
 .gig-card {
