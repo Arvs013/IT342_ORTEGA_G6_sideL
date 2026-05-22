@@ -1,6 +1,7 @@
 import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import DashboardHeader from "./DashboardHeader";
+import { clearAuthSession, getAuthHeaders } from "../utils/auth";
 import "../styles/dashboard.css";
 
 const API_BASE_URL = "http://localhost:8080/api";
@@ -131,6 +132,7 @@ const Dashboard = () => {
       ...options,
       headers: {
         "Content-Type": "application/json",
+        ...getAuthHeaders(),
         ...(options.headers || {}),
       },
     });
@@ -155,6 +157,7 @@ const Dashboard = () => {
 
     const response = await fetch(`${API_BASE_URL}/uploads/images`, {
       method: "POST",
+      headers: getAuthHeaders(),
       body: formData,
     });
 
@@ -258,7 +261,9 @@ const Dashboard = () => {
 
   useEffect(() => {
     const savedUser = localStorage.getItem("loggedUser");
-    if (!savedUser) {
+    const savedToken = localStorage.getItem("authToken");
+    if (!savedUser || !savedToken) {
+      clearAuthSession();
       setLoading(false);
       return;
     }
@@ -269,7 +274,7 @@ const Dashboard = () => {
   }, [loadDashboard]);
 
   const handleLogout = () => {
-    localStorage.removeItem("loggedUser");
+    clearAuthSession();
     navigate("/login");
   };
 
