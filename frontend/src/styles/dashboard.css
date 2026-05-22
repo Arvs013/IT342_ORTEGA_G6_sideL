@@ -1267,6 +1267,27 @@ button {
   color: var(--green-dark);
 }
 
+.button-group button:disabled {
+  cursor: default;
+  opacity: 0.58;
+}
+
+.button-group button:disabled:hover {
+  border-color: var(--line);
+  color: var(--ink);
+}
+
+.admin-row-actions {
+  align-items: center;
+  justify-content: flex-end;
+  min-width: 220px;
+}
+
+.admin-booking-row,
+.report-row {
+  align-items: flex-start;
+}
+
 .applicant-row {
   align-items: flex-start;
 }
