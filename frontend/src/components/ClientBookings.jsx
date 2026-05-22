@@ -6,6 +6,7 @@ const API_BASE_URL = "http://localhost:8080/api";
 const API_ORIGIN = API_BASE_URL.replace("/api", "");
 
 const historyStatuses = ["COMPLETED", "CANCELLED", "REJECTED"];
+const bookingStatusSteps = ["PENDING", "ACCEPTED", "IN_PROGRESS", "COMPLETED"];
 
 const getImageSource = (image) =>
   image?.startsWith("/uploads/") ? `${API_ORIGIN}${image}` : image;
@@ -16,6 +17,18 @@ const getStatusClass = (status = "") => {
   if (["REJECTED", "CANCELLED"].includes(normalized)) return "danger-status";
   if (["PENDING"].includes(normalized)) return "warning-status";
   return "info-status";
+};
+
+const formatStatus = (status = "") => status.replace(/_/g, " ");
+
+const getStepClass = (bookingStatus, step) => {
+  const status = bookingStatus || "";
+  if (["CANCELLED", "REJECTED"].includes(status)) return "inactive";
+  const currentIndex = bookingStatusSteps.indexOf(status);
+  const stepIndex = bookingStatusSteps.indexOf(step);
+  if (currentIndex < 0 || stepIndex > currentIndex) return "inactive";
+  if (stepIndex === currentIndex) return "current";
+  return "done";
 };
 
 const ClientBookings = () => {
@@ -225,6 +238,7 @@ const ClientBookings = () => {
     const canReview = isHistory && booking.status === "COMPLETED" && booking.gig?.gigID;
     const reviewForm = reviewForms[booking.bookingID] || { rating: 5, comment: "" };
     const statusLabel = isAccepted ? "SCHEDULED" : isInProgress ? "IN PROGRESS" : booking.status;
+    const hasReceiptFile = Boolean(receiptFiles[booking.bookingID]);
 
     return (
       <article className="client-booking-card" key={booking.bookingID}>
@@ -250,6 +264,14 @@ const ClientBookings = () => {
           )}
         </div>
 
+        <div className="booking-progress" aria-label={`Booking status ${formatStatus(booking.status)}`}>
+          {bookingStatusSteps.map((step) => (
+            <span className={getStepClass(booking.status, step)} key={step}>
+              {formatStatus(step)}
+            </span>
+          ))}
+        </div>
+
         {!isHistory && (
           <div className="client-booking-actions">
             {(isAccepted || isInProgress) && (
@@ -266,7 +288,12 @@ const ClientBookings = () => {
               </label>
             )}
             {(isAccepted || isInProgress) && (
-              <button className="primary-action compact-action" type="button" onClick={() => submitReceipt(booking.bookingID)}>
+              <button
+                className="primary-action compact-action"
+                type="button"
+                disabled={!hasReceiptFile}
+                onClick={() => submitReceipt(booking.bookingID)}
+              >
                 Submit receipt
               </button>
             )}
@@ -314,6 +341,8 @@ const ClientBookings = () => {
             <label>
               Review
               <textarea
+                required
+                minLength="10"
                 placeholder="Share your experience with this completed service."
                 value={reviewForm.comment}
                 onChange={(event) => setReviewForms({
@@ -322,7 +351,12 @@ const ClientBookings = () => {
                 })}
               />
             </label>
-            <button className="primary-action compact-action" type="button" onClick={() => submitReview(booking)}>
+            <button
+              className="primary-action compact-action"
+              type="button"
+              disabled={!reviewForm.comment.trim()}
+              onClick={() => submitReview(booking)}
+            >
               Post review
             </button>
           </div>

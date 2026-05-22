@@ -292,7 +292,10 @@ const AdminDashboard = () => {
           </div>
 
           {!reports.length && !loading && (
-            <p className="muted-text">No client or provider reports yet.</p>
+            <div className="dashboard-empty-state admin-empty-state">
+              <h4>No reports yet</h4>
+              <p>Client and provider conflict reports will appear here for review.</p>
+            </div>
           )}
         </section>
 
@@ -331,7 +334,10 @@ const AdminDashboard = () => {
           </div>
 
           {!bookings.length && !loading && (
-            <p className="muted-text">No bookings have been created yet.</p>
+            <div className="dashboard-empty-state admin-empty-state">
+              <h4>No bookings yet</h4>
+              <p>Service bookings from clients will appear here once requests are created.</p>
+            </div>
           )}
         </section>
 
@@ -388,7 +394,10 @@ const AdminDashboard = () => {
           </div>
 
           {!applicants.length && !loading && (
-            <p className="muted-text">No pending provider applications.</p>
+            <div className="dashboard-empty-state admin-empty-state">
+              <h4>No pending applications</h4>
+              <p>Provider applications waiting for approval will appear here.</p>
+            </div>
           )}
         </section>
 
@@ -432,6 +441,13 @@ const AdminDashboard = () => {
               </article>
             ))}
           </div>
+
+          {!users.length && !loading && (
+            <div className="dashboard-empty-state admin-empty-state">
+              <h4>No users yet</h4>
+              <p>Registered client and provider accounts will appear here.</p>
+            </div>
+          )}
         </section>
 
         <section className="dashboard-panel admin-section" id="gigs">
@@ -469,6 +485,13 @@ const AdminDashboard = () => {
               </article>
             ))}
           </div>
+
+          {!gigs.length && !loading && (
+            <div className="dashboard-empty-state admin-empty-state">
+              <h4>No gigs yet</h4>
+              <p>Provider services will appear here once approved providers post gigs.</p>
+            </div>
+          )}
         </section>
       </section>
     </main>
