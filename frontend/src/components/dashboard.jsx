@@ -116,6 +116,9 @@ const Dashboard = () => {
   const isProvider = Boolean(user?.isProvider);
   const isAdmin = Boolean(user?.isAdmin);
   const providerStatusLabel = user?.providerStatus || "NONE";
+  const activeGigCount = myGigs.filter((gig) => (gig.status || "ACTIVE") !== "DISABLED").length;
+  const disabledGigCount = myGigs.length - activeGigCount;
+  const openProviderJobs = providerJobs.filter((booking) => ["PENDING", "ACCEPTED", "IN_PROGRESS"].includes(booking.status)).length;
 
   const request = useCallback(async (path, options = {}) => {
     const response = await fetch(`${API_BASE_URL}${path}`, {
@@ -654,8 +657,32 @@ const Dashboard = () => {
               </button>
             </div>
 
+            <div className="provider-summary-grid" aria-label="Provider gig summary">
+              <article>
+                <strong>{myGigs.length}</strong>
+                <span>Total gigs</span>
+              </article>
+              <article>
+                <strong>{activeGigCount}</strong>
+                <span>Active</span>
+              </article>
+              <article>
+                <strong>{disabledGigCount}</strong>
+                <span>Disabled</span>
+              </article>
+              <article>
+                <strong>{myGigs.reduce((sum, gig) => sum + Number(gig.likeCount || 0), 0)}</strong>
+                <span>Total likes</span>
+              </article>
+            </div>
+
             {showGigForm && (
               <form className="provider-form gig-editor-form" onSubmit={submitGig}>
+                <div className="wide-field form-intro">
+                  <p className="dashboard-kicker">{editingGig ? "Edit gig" : "New gig"}</p>
+                  <h4>{editingGig ? "Update service details" : "Post a service clients can book"}</h4>
+                </div>
+
                 <label>
                   Gig title
                   <input
@@ -781,7 +808,13 @@ const Dashboard = () => {
             </div>
 
             {!myGigs.length && !loading && (
-              <p className="muted-text">You have no gigs yet. Add your first service so clients can book you.</p>
+              <div className="dashboard-empty-state">
+                <h4>No gigs posted yet</h4>
+                <p>Add your first service so clients can discover and book your work.</p>
+                <button className="primary-action compact-action" type="button" onClick={openCreateGigForm}>
+                  Add your first gig
+                </button>
+              </div>
             )}
           </section>
         )}
@@ -793,7 +826,7 @@ const Dashboard = () => {
                 <p className="dashboard-kicker">Provider bookings</p>
                 <h3>Incoming service requests</h3>
               </div>
-              <span className="status-chip">{providerJobs.length} requests</span>
+              <span className="status-chip">{openProviderJobs} active</span>
             </div>
 
             <div className="provider-booking-list">
@@ -801,11 +834,15 @@ const Dashboard = () => {
                 <article className="provider-booking-card" key={booking.bookingID}>
                   <div className="provider-booking-main">
                     <div>
-                      <span className="pill">{booking.gig?.category || "Service"}</span>
+                      <div className="inline-pills">
+                        <span className="pill">{booking.gig?.category || "Service"}</span>
+                        <span className={`status-chip ${booking.status === "PENDING" ? "warning-status" : booking.status === "CANCELLED" || booking.status === "REJECTED" ? "danger-status" : booking.status === "COMPLETED" ? "success-status" : "info-status"}`}>
+                          {formatStatus(booking.status)}
+                        </span>
+                      </div>
                       <h4>{booking.gig?.title || "Booked service"}</h4>
                       <p>{new Date(booking.bookingDate).toLocaleString()}</p>
                     </div>
-                    <span className="status-chip">{formatStatus(booking.status)}</span>
                   </div>
 
                   <div className="provider-booking-details">
@@ -833,7 +870,7 @@ const Dashboard = () => {
                     )}
                   </div>
 
-                  <div className="button-group">
+                  <div className="button-group provider-booking-actions">
                     {getNextBookingStatuses(booking.status).map((status) => (
                       <button
                         key={status}
@@ -855,7 +892,10 @@ const Dashboard = () => {
             </div>
 
             {!providerJobs.length && !loading && (
-              <p className="muted-text">No one has booked your gigs yet.</p>
+              <div className="dashboard-empty-state">
+                <h4>No booking requests yet</h4>
+                <p>When clients book one of your active gigs, the request will appear here.</p>
+              </div>
             )}
           </section>
         )}

@@ -32,6 +32,8 @@ public class UserServiceImpl implements UserService {
     @Override
     public UserEntity saveUser(UserEntity user) {
 
+        validatePassword(user.getPassword());
+
         // check if email already exists
         if (repository.existsByEmail(user.getEmail())) {
             throw new RuntimeException("Email already exists");
@@ -41,6 +43,24 @@ public class UserServiceImpl implements UserService {
         user.setPassword(encoder.encode(user.getPassword()));
 
         return repository.save(user);
+    }
+
+    private void validatePassword(String password) {
+        if (password == null || password.length() < 8) {
+            throw new RuntimeException("Password must be at least 8 characters long.");
+        }
+        if (!password.matches(".*[A-Z].*")) {
+            throw new RuntimeException("Password must include at least one uppercase letter.");
+        }
+        if (!password.matches(".*[a-z].*")) {
+            throw new RuntimeException("Password must include at least one lowercase letter.");
+        }
+        if (!password.matches(".*\\d.*")) {
+            throw new RuntimeException("Password must include at least one number.");
+        }
+        if (!password.matches(".*[^A-Za-z0-9].*")) {
+            throw new RuntimeException("Password must include at least one special character.");
+        }
     }
 
     @Override
