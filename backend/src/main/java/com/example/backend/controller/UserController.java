@@ -32,8 +32,12 @@ public class UserController {
 
     // REGISTER
     @PostMapping("/register")
-    public UserEntity register(@RequestBody UserEntity user) {
-        return service.saveUser(user);
+    public ResponseEntity<?> register(@RequestBody UserEntity user) {
+        try {
+            return ResponseEntity.ok(service.saveUser(user));
+        } catch (RuntimeException err) {
+            return ResponseEntity.badRequest().body(err.getMessage());
+        }
     }
 
     // LOGIN

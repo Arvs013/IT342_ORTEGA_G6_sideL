@@ -26,6 +26,13 @@ const getImageSource = (image) =>
 const getUserStatus = (user) => user?.accountStatus || "ACTIVE";
 const getGigStatus = (gig) => gig?.status || "ACTIVE";
 const formatStatus = (status = "") => status.replace(/_/g, " ");
+const getStatusClass = (status = "") => {
+  const normalized = status.toUpperCase();
+  if (["ACTIVE", "APPROVED", "COMPLETED", "RESOLVED"].includes(normalized)) return "success-status";
+  if (["DISABLED", "REJECTED", "CANCELLED"].includes(normalized)) return "danger-status";
+  if (["OPEN", "PENDING"].includes(normalized)) return "warning-status";
+  return "info-status";
+};
 
 const AdminDashboard = () => {
   const navigate = useNavigate();
@@ -239,7 +246,7 @@ const AdminDashboard = () => {
           </div>
         </section>
 
-        <section className="dashboard-panel" id="reports">
+        <section className="dashboard-panel admin-section" id="reports">
           <div className="section-heading">
             <div>
               <p className="dashboard-kicker">Conflict reports</p>
@@ -251,23 +258,22 @@ const AdminDashboard = () => {
           <div className="data-list">
             {reports.map((report) => (
               <article className="data-row report-row" key={report.reportID}>
-                <div>
-                  <span className="pill">{report.reason}</span>
-                  <h4>
-                    {report.reporter?.firstname || "User"} reported {report.reportedUser?.firstname || "User"}
-                  </h4>
-                  <p>
-                    Reporter: {report.reporter?.firstname} {report.reporter?.lastname} - {report.reporter?.email}
-                  </p>
-                  <p>
-                    Reported: {report.reportedUser?.firstname} {report.reportedUser?.lastname} - {report.reportedUser?.email}
-                  </p>
+                <div className="admin-row-main">
+                  <div className="inline-pills">
+                    <span className="pill">{report.reason}</span>
+                    <span className={`status-chip ${getStatusClass(report.status)}`}>{report.status}</span>
+                  </div>
+                  <h4>{report.reporter?.firstname || "User"} reported {report.reportedUser?.firstname || "User"}</h4>
+                  <div className="admin-detail-grid">
+                    <p><span>Reporter</span><strong>{report.reporter?.firstname} {report.reporter?.lastname}</strong></p>
+                    <p><span>Reporter email</span><strong>{report.reporter?.email || "No email"}</strong></p>
+                    <p><span>Reported</span><strong>{report.reportedUser?.firstname} {report.reportedUser?.lastname}</strong></p>
+                    <p><span>Reported email</span><strong>{report.reportedUser?.email || "No email"}</strong></p>
+                  </div>
                   {report.booking && (
-                    <p>
-                      Booking: {report.booking.gig?.title || "Service"} - {report.booking.status}
-                    </p>
+                    <p className="admin-note">Booking: {report.booking.gig?.title || "Service"} - {formatStatus(report.booking.status)}</p>
                   )}
-                  <p>{report.details}</p>
+                  <p className="admin-note">{report.details}</p>
                 </div>
                 <div className="button-group admin-row-actions">
                   {["OPEN", "REVIEWED", "RESOLVED"].map((status) => (
@@ -290,7 +296,7 @@ const AdminDashboard = () => {
           )}
         </section>
 
-        <section className="dashboard-panel" id="bookings">
+        <section className="dashboard-panel admin-section" id="bookings">
           <div className="section-heading">
             <div>
               <p className="dashboard-kicker">Booking monitor</p>
@@ -302,21 +308,24 @@ const AdminDashboard = () => {
           <div className="data-list">
             {bookings.map((booking) => (
               <article className="data-row admin-booking-row" key={booking.bookingID}>
-                <div>
-                  <span className="pill">{formatStatus(booking.status)}</span>
+                <div className="admin-row-main">
+                  <div className="inline-pills">
+                    <span className={`status-chip ${getStatusClass(booking.status)}`}>{formatStatus(booking.status)}</span>
+                    <span className="pill">{booking.gig?.category || "Service"}</span>
+                  </div>
                   <h4>{booking.gig?.title || "Booked service"}</h4>
-                  <p>
-                    Client: {booking.client?.firstname} {booking.client?.lastname} - Provider: {booking.gig?.provider?.firstname || "Provider"} {booking.gig?.provider?.lastname || ""}
-                  </p>
-                  <p>{booking.bookingDate ? new Date(booking.bookingDate).toLocaleString() : "No schedule"}</p>
-                  <p>{booking.serviceAddress || "No service address"}</p>
+                  <div className="admin-detail-grid">
+                    <p><span>Client</span><strong>{booking.client?.firstname} {booking.client?.lastname}</strong></p>
+                    <p><span>Provider</span><strong>{booking.gig?.provider?.firstname || "Provider"} {booking.gig?.provider?.lastname || ""}</strong></p>
+                    <p><span>Schedule</span><strong>{booking.bookingDate ? new Date(booking.bookingDate).toLocaleString() : "No schedule"}</strong></p>
+                    <p><span>Address</span><strong>{booking.serviceAddress || "No service address"}</strong></p>
+                  </div>
                   {booking.receiptUrl && (
                     <a className="application-link" href={getImageSource(booking.receiptUrl)} target="_blank" rel="noreferrer">
                       View receipt
                     </a>
                   )}
                 </div>
-                <span className="status-chip">{booking.gig?.category || "Service"}</span>
               </article>
             ))}
           </div>
@@ -326,7 +335,7 @@ const AdminDashboard = () => {
           )}
         </section>
 
-        <section className="dashboard-panel" id="applicants">
+        <section className="dashboard-panel admin-section" id="applicants">
           <div className="section-heading">
             <div>
               <p className="dashboard-kicker">Provider review</p>
@@ -383,7 +392,7 @@ const AdminDashboard = () => {
           )}
         </section>
 
-        <section className="dashboard-panel" id="users">
+        <section className="dashboard-panel admin-section" id="users">
           <div className="section-heading">
             <div>
               <p className="dashboard-kicker">Accounts</p>
@@ -394,16 +403,20 @@ const AdminDashboard = () => {
           <div className="data-list">
             {users.map((user) => (
               <article className="data-row" key={user.userID}>
-                <div>
+                <div className="admin-row-main">
                   <h4>{user.firstname} {user.lastname}</h4>
-                  <p>{user.email}</p>
-                  <p>{user.phoneNumber || "No phone"} - {user.address || "No address"}</p>
+                  <div className="admin-detail-grid">
+                    <p><span>Email</span><strong>{user.email}</strong></p>
+                    <p><span>Phone</span><strong>{user.phoneNumber || "No phone"}</strong></p>
+                    <p><span>Address</span><strong>{user.address || "No address"}</strong></p>
+                    <p><span>Provider status</span><strong>{user.providerStatus || "NONE"}</strong></p>
+                  </div>
                 </div>
                 <div className="button-group admin-row-actions">
                   <span className="status-chip">
                     {user.isAdmin ? "ADMIN" : user.isProvider ? "PROVIDER" : "CLIENT"}
                   </span>
-                  <span className={`status-chip ${getUserStatus(user) === "DISABLED" ? "danger-status" : "success-status"}`}>
+                  <span className={`status-chip ${getStatusClass(getUserStatus(user))}`}>
                     {getUserStatus(user)}
                   </span>
                   {!user.isAdmin && (
@@ -421,7 +434,7 @@ const AdminDashboard = () => {
           </div>
         </section>
 
-        <section className="dashboard-panel" id="gigs">
+        <section className="dashboard-panel admin-section" id="gigs">
           <div className="section-heading">
             <div>
               <p className="dashboard-kicker">Marketplace</p>
@@ -432,13 +445,17 @@ const AdminDashboard = () => {
           <div className="data-list">
             {gigs.map((gig) => (
               <article className="data-row" key={gig.gigID}>
-                <div>
+                <div className="admin-row-main">
                   <h4>{gig.title}</h4>
-                  <p>{gig.category} - PHP {Number(gig.price || 0).toLocaleString()}</p>
-                  <p>Provider: {gig.provider?.firstname || "Provider"} {gig.provider?.lastname || ""}</p>
+                  <div className="admin-detail-grid">
+                    <p><span>Category</span><strong>{gig.category}</strong></p>
+                    <p><span>Price</span><strong>PHP {Number(gig.price || 0).toLocaleString()}</strong></p>
+                    <p><span>Provider</span><strong>{gig.provider?.firstname || "Provider"} {gig.provider?.lastname || ""}</strong></p>
+                    <p><span>Likes</span><strong>{gig.likeCount || 0}</strong></p>
+                  </div>
                 </div>
                 <div className="button-group admin-row-actions">
-                  <span className={`status-chip ${getGigStatus(gig) === "DISABLED" ? "danger-status" : "success-status"}`}>
+                  <span className={`status-chip ${getStatusClass(getGigStatus(gig))}`}>
                     {getGigStatus(gig)}
                   </span>
                   <button
