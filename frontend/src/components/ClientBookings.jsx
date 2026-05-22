@@ -1,5 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
+import { clearAuthSession, getAuthHeaders } from "../utils/auth";
 import "../styles/dashboard.css";
 
 const API_BASE_URL = "http://localhost:8080/api";
@@ -48,6 +49,7 @@ const ClientBookings = () => {
       ...options,
       headers: {
         "Content-Type": "application/json",
+        ...getAuthHeaders(),
         ...(options.headers || {}),
       },
     });
@@ -70,6 +72,7 @@ const ClientBookings = () => {
 
     const response = await fetch(`${API_BASE_URL}/uploads/images`, {
       method: "POST",
+      headers: getAuthHeaders(),
       body: formData,
     });
 
@@ -103,7 +106,9 @@ const ClientBookings = () => {
 
   useEffect(() => {
     const savedUser = localStorage.getItem("loggedUser");
-    if (!savedUser) {
+    const savedToken = localStorage.getItem("authToken");
+    if (!savedUser || !savedToken) {
+      clearAuthSession();
       navigate("/login");
       return;
     }

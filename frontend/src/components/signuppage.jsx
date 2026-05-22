@@ -97,8 +97,6 @@ const SignupPage = () => {
 
       setSuccess("Account created successfully!");
 
-      localStorage.setItem("loggedUser", JSON.stringify(data));
-
       setTimeout(() => {
         navigate("/login");
       }, 1000);

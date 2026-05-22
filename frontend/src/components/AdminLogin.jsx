@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
+import { storeAuthSession } from "../utils/auth";
 import "../styles/LoginPage.css";
 
 const AdminLogin = () => {
@@ -34,17 +35,22 @@ const AdminLogin = () => {
         body: JSON.stringify({ email, password }),
       });
 
-      const data = await response.json();
+      const contentType = response.headers.get("content-type") || "";
+      const data = contentType.includes("application/json")
+        ? await response.json()
+        : await response.text();
 
       if (!response.ok) {
-        throw new Error(data.message || "Invalid admin credentials");
+        throw new Error(typeof data === "string" ? data : data.message || "Invalid admin credentials");
       }
 
-      if (!data.isAdmin) {
+      const loggedUser = data?.user || data;
+
+      if (!loggedUser.isAdmin) {
         throw new Error("This account is not an admin account.");
       }
 
-      localStorage.setItem("loggedUser", JSON.stringify(data));
+      storeAuthSession(data);
       navigate("/admin/dashboard");
     } catch (err) {
       setError(err.message || "Admin login failed.");

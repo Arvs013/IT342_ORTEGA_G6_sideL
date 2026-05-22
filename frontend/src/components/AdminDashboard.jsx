@@ -1,5 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
+import { clearAuthSession, getAuthHeaders } from "../utils/auth";
 import "../styles/dashboard.css";
 
 const API_BASE_URL = "http://localhost:8080/api";
@@ -59,6 +60,7 @@ const AdminDashboard = () => {
       ...options,
       headers: {
         "Content-Type": "application/json",
+        ...getAuthHeaders(),
         ...(options.headers || {}),
       },
     });
@@ -102,8 +104,10 @@ const AdminDashboard = () => {
 
   useEffect(() => {
     const savedUser = localStorage.getItem("loggedUser");
+    const savedToken = localStorage.getItem("authToken");
 
-    if (!savedUser) {
+    if (!savedUser || !savedToken) {
+      clearAuthSession();
       navigate("/admin/login");
       return;
     }
@@ -119,7 +123,7 @@ const AdminDashboard = () => {
   }, [loadAdminDashboard, navigate]);
 
   const handleLogout = () => {
-    localStorage.removeItem("loggedUser");
+    clearAuthSession();
     navigate("/admin/login");
   };
 
