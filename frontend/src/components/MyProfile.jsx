@@ -13,6 +13,8 @@ const emptyProfile = {
   bio: "",
 };
 
+const valueOrEmpty = (value) => value || "Not added yet";
+
 const MyProfile = () => {
   const navigate = useNavigate();
   const [user, setUser] = useState(null);
@@ -105,6 +107,11 @@ const MyProfile = () => {
   };
 
   const isProvider = Boolean(user?.isProvider);
+  const fullName = `${user?.firstname || ""} ${user?.lastname || ""}`.trim() || "sideL user";
+  const initials = `${user?.firstname?.[0] || ""}${user?.lastname?.[0] || ""}`.toUpperCase() || "SL";
+  const accountStatus = user?.accountStatus || "ACTIVE";
+  const providerStatus = user?.providerStatus || (isProvider ? "APPROVED" : "CLIENT");
+  const roleLabel = user?.isAdmin ? "Admin" : isProvider ? "Provider" : "Client";
 
   return (
     <main className="profile-page">
@@ -112,91 +119,161 @@ const MyProfile = () => {
         <Link className="brand-mark" to="/dashboard" aria-label="Go to dashboard">
           sideL
         </Link>
-        <Link className="secondary-inline" to="/dashboard">
-          Back to dashboard
-        </Link>
+        <div className="profile-header-actions">
+          <Link className="secondary-inline" to="/bookings">
+            My bookings
+          </Link>
+          <Link className="primary-action" to="/dashboard">
+            Dashboard
+          </Link>
+        </div>
       </header>
 
       <section className="dashboard-panel profile-page-card">
-        <div className="section-heading">
-          <div>
-            <p className="dashboard-kicker">My Profile</p>
-            <h1>{isProvider ? "Provider details" : "Client details"}</h1>
-          </div>
-          <span className="status-chip">{user?.providerStatus || "CLIENT"}</span>
-        </div>
-
         {loading && <p className="status-line">Loading profile...</p>}
         {error && <p className="error-banner">{error}</p>}
         {message && <p className="success-banner">{message}</p>}
 
         {!loading && (
           <>
-            <div className="profile-shortcuts">
-              <Link className="primary-action" to="/bookings">
-                My bookings
-              </Link>
+            <div className="my-profile-hero">
+              <div className="my-profile-avatar" aria-hidden="true">
+                {initials}
+              </div>
+              <div className="my-profile-title">
+                <p className="dashboard-kicker">My Profile</p>
+                <h1>{fullName}</h1>
+                <p>{isProvider ? "Manage your provider details and contact information." : "Manage your client profile and booking contact details."}</p>
+              </div>
+              <div className="my-profile-status">
+                <span className={`status-chip ${accountStatus === "ACTIVE" ? "success-status" : "danger-status"}`}>
+                  {accountStatus}
+                </span>
+                <span className={`status-chip ${isProvider ? "success-status" : "info-status"}`}>
+                  {roleLabel}
+                </span>
+              </div>
             </div>
 
-            <form className="profile-edit-form" onSubmit={updateProfile}>
-              <label>
-                First name
-                <input
-                  type="text"
-                  value={profileForm.firstname}
-                  onChange={(event) => setProfileForm({ ...profileForm, firstname: event.target.value })}
-                />
-              </label>
+            <div className="profile-quick-grid">
+              <article>
+                <span>Email</span>
+                <strong>{valueOrEmpty(user?.email)}</strong>
+              </article>
+              <article>
+                <span>Phone</span>
+                <strong>{valueOrEmpty(user?.phoneNumber)}</strong>
+              </article>
+              <article>
+                <span>{isProvider ? "Provider status" : "Account role"}</span>
+                <strong>{providerStatus}</strong>
+              </article>
+            </div>
 
-              <label>
-                Last name
-                <input
-                  type="text"
-                  value={profileForm.lastname}
-                  onChange={(event) => setProfileForm({ ...profileForm, lastname: event.target.value })}
-                />
-              </label>
+            <div className="my-profile-layout">
+              <aside className="profile-info-card">
+                <div>
+                  <p className="dashboard-kicker">Profile Snapshot</p>
+                  <h2>{isProvider ? "Provider profile" : "Client profile"}</h2>
+                </div>
 
-              <label>
-                Email
-                <input
-                  type="email"
-                  value={profileForm.email}
-                  onChange={(event) => setProfileForm({ ...profileForm, email: event.target.value })}
-                />
-              </label>
+                <div className="profile-detail-list">
+                  <p>
+                    <span>Full name</span>
+                    <strong>{fullName}</strong>
+                  </p>
+                  <p>
+                    <span>Address</span>
+                    <strong>{valueOrEmpty(user?.address)}</strong>
+                  </p>
+                  <p>
+                    <span>{isProvider ? "Provider description" : "About"}</span>
+                    <strong>{valueOrEmpty(user?.bio)}</strong>
+                  </p>
+                </div>
 
-              <label>
-                Phone number
-                <input
-                  type="text"
-                  value={profileForm.phoneNumber}
-                  onChange={(event) => setProfileForm({ ...profileForm, phoneNumber: event.target.value })}
-                />
-              </label>
+                <div className="profile-shortcuts">
+                  <Link className="secondary-inline" to="/bookings">
+                    Booking history
+                  </Link>
+                  <Link className="secondary-inline" to="/dashboard">
+                    Browse gigs
+                  </Link>
+                  {isProvider && (
+                    <Link className="secondary-inline" to="/dashboard">
+                      Manage provider tools
+                    </Link>
+                  )}
+                </div>
+              </aside>
 
-              <label className="wide-field">
-                Address
-                <input
-                  type="text"
-                  value={profileForm.address}
-                  onChange={(event) => setProfileForm({ ...profileForm, address: event.target.value })}
-                />
-              </label>
+              <form className="profile-edit-form profile-edit-card" onSubmit={updateProfile}>
+                <div className="profile-form-heading">
+                  <p className="dashboard-kicker">Edit Details</p>
+                  <h2>Contact and profile information</h2>
+                </div>
 
-              <label className="wide-field">
-                {isProvider ? "Provider description" : "About me"}
-                <textarea
-                  placeholder={isProvider ? "Describe your skills, service area, and experience." : "Add a short profile note."}
-                  value={profileForm.bio}
-                  onChange={(event) => setProfileForm({ ...profileForm, bio: event.target.value })}
-                />
-              </label>
+                <label>
+                  First name
+                  <input
+                    type="text"
+                    value={profileForm.firstname}
+                    onChange={(event) => setProfileForm({ ...profileForm, firstname: event.target.value })}
+                  />
+                </label>
 
-              <button className="primary-action" type="submit" disabled={saving}>
-                {saving ? "Saving..." : "Save profile"}
-              </button>
-            </form>
+                <label>
+                  Last name
+                  <input
+                    type="text"
+                    value={profileForm.lastname}
+                    onChange={(event) => setProfileForm({ ...profileForm, lastname: event.target.value })}
+                  />
+                </label>
+
+                <label>
+                  Email
+                  <input
+                    type="email"
+                    value={profileForm.email}
+                    onChange={(event) => setProfileForm({ ...profileForm, email: event.target.value })}
+                  />
+                </label>
+
+                <label>
+                  Phone number
+                  <input
+                    type="text"
+                    value={profileForm.phoneNumber}
+                    onChange={(event) => setProfileForm({ ...profileForm, phoneNumber: event.target.value })}
+                  />
+                </label>
+
+                <label className="wide-field">
+                  Address
+                  <input
+                    type="text"
+                    value={profileForm.address}
+                    onChange={(event) => setProfileForm({ ...profileForm, address: event.target.value })}
+                  />
+                </label>
+
+                <label className="wide-field">
+                  {isProvider ? "Provider description" : "About me"}
+                  <textarea
+                    placeholder={isProvider ? "Describe your skills, service area, and experience." : "Add a short profile note."}
+                    value={profileForm.bio}
+                    onChange={(event) => setProfileForm({ ...profileForm, bio: event.target.value })}
+                  />
+                </label>
+
+                <div className="form-actions">
+                  <button className="primary-action" type="submit" disabled={saving}>
+                    {saving ? "Saving..." : "Save profile"}
+                  </button>
+                </div>
+              </form>
+            </div>
           </>
         )}
       </section>
