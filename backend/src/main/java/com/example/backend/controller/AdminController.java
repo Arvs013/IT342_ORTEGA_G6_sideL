@@ -1,8 +1,12 @@
 package com.example.backend.controller;
 
+import com.example.backend.entity.BookingEntity;
+import com.example.backend.entity.GigEntity;
 import com.example.backend.entity.ProviderApplicationEntity;
 import com.example.backend.entity.ReportEntity;
 import com.example.backend.entity.UserEntity;
+import com.example.backend.repository.BookingRepository;
+import com.example.backend.repository.GigRepository;
 import com.example.backend.repository.ProviderApplicationRepository;
 import com.example.backend.repository.ReportRepository;
 import com.example.backend.repository.UserRepository;
@@ -20,6 +24,12 @@ public class AdminController {
     private UserRepository userRepository;
 
     @Autowired
+    private BookingRepository bookingRepository;
+
+    @Autowired
+    private GigRepository gigRepository;
+
+    @Autowired
     private ProviderApplicationRepository providerApplicationRepository;
 
     @Autowired
@@ -34,6 +44,58 @@ public class AdminController {
     @GetMapping("/reports")
     public ResponseEntity<List<ReportEntity>> getReports() {
         return ResponseEntity.ok(reportRepository.findAllByOrderByCreatedAtDesc());
+    }
+
+    @GetMapping("/bookings")
+    public ResponseEntity<List<BookingEntity>> getBookings() {
+        return ResponseEntity.ok(bookingRepository.findAllByOrderByCreatedAtDesc());
+    }
+
+    @GetMapping("/gigs")
+    public ResponseEntity<List<GigEntity>> getGigs() {
+        return ResponseEntity.ok(gigRepository.findAll());
+    }
+
+    @PutMapping("/reports/{id}/status")
+    public ResponseEntity<?> updateReportStatus(@PathVariable Integer id, @RequestParam String status) {
+        return reportRepository.findById(id).map(report -> {
+            String upperStatus = status.toUpperCase();
+            if (!List.of("OPEN", "REVIEWED", "RESOLVED").contains(upperStatus)) {
+                return ResponseEntity.badRequest().body("Invalid report status.");
+            }
+
+            report.setStatus(upperStatus);
+            return ResponseEntity.ok(reportRepository.save(report));
+        }).orElse(ResponseEntity.notFound().build());
+    }
+
+    @PutMapping("/users/{id}/status")
+    public ResponseEntity<?> updateUserStatus(@PathVariable Integer id, @RequestParam String status) {
+        return userRepository.findById(id).map(user -> {
+            String upperStatus = status.toUpperCase();
+            if (!List.of("ACTIVE", "DISABLED").contains(upperStatus)) {
+                return ResponseEntity.badRequest().body("Invalid user status.");
+            }
+            if (Boolean.TRUE.equals(user.getIsAdmin()) && "DISABLED".equals(upperStatus)) {
+                return ResponseEntity.badRequest().body("Admin accounts cannot be disabled here.");
+            }
+
+            user.setAccountStatus(upperStatus);
+            return ResponseEntity.ok(userRepository.save(user));
+        }).orElse(ResponseEntity.notFound().build());
+    }
+
+    @PutMapping("/gigs/{id}/status")
+    public ResponseEntity<?> updateGigStatus(@PathVariable Integer id, @RequestParam String status) {
+        return gigRepository.findById(id).map(gig -> {
+            String upperStatus = status.toUpperCase();
+            if (!List.of("ACTIVE", "DISABLED").contains(upperStatus)) {
+                return ResponseEntity.badRequest().body("Invalid gig status.");
+            }
+
+            gig.setStatus(upperStatus);
+            return ResponseEntity.ok(gigRepository.save(gig));
+        }).orElse(ResponseEntity.notFound().build());
     }
 
     // 2. Accept or Reject a provider applicant

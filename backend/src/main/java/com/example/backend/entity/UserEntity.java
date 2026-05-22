@@ -45,6 +45,9 @@ public class UserEntity {
     @Column(name = "provider_status", nullable = false, length = 20)
     private String providerStatus = "NONE";
 
+    @Column(name = "account_status", length = 20)
+    private String accountStatus = "ACTIVE";
+
     @Column(name = "created_at")
     private LocalDateTime createdAT;
 
@@ -95,6 +98,9 @@ public class UserEntity {
 
     public String getProviderStatus() { return providerStatus; }
     public void setProviderStatus(String providerStatus) { this.providerStatus = providerStatus; }
+
+    public String getAccountStatus() { return accountStatus; }
+    public void setAccountStatus(String accountStatus) { this.accountStatus = accountStatus; }
 
     public LocalDateTime getCreatedAT() { return createdAT; }
     public void setCreatedAT(LocalDateTime createdAT) { this.createdAT = createdAT; }

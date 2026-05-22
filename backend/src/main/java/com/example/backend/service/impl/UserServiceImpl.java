@@ -49,6 +49,10 @@ public class UserServiceImpl implements UserService {
         UserEntity user = repository.findByEmail(email)
                 .orElseThrow(() -> new RuntimeException("User not found"));
 
+        if ("DISABLED".equalsIgnoreCase(user.getAccountStatus())) {
+            throw new RuntimeException("This account has been disabled by admin.");
+        }
+
         // compare encrypted password
         if (!encoder.matches(password, user.getPassword())) {
             throw new RuntimeException("Invalid password");

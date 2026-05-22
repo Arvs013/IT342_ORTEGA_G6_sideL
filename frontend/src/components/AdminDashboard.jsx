@@ -23,6 +23,10 @@ const getApplicationImages = (imageText = "") => {
 const getImageSource = (image) =>
   image?.startsWith("/uploads/") ? `${API_ORIGIN}${image}` : image;
 
+const getUserStatus = (user) => user?.accountStatus || "ACTIVE";
+const getGigStatus = (gig) => gig?.status || "ACTIVE";
+const formatStatus = (status = "") => status.replace(/_/g, " ");
+
 const AdminDashboard = () => {
   const navigate = useNavigate();
   const [admin, setAdmin] = useState(null);
@@ -30,6 +34,7 @@ const AdminDashboard = () => {
   const [users, setUsers] = useState([]);
   const [gigs, setGigs] = useState([]);
   const [reports, setReports] = useState([]);
+  const [bookings, setBookings] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [message, setMessage] = useState("");
@@ -40,6 +45,7 @@ const AdminDashboard = () => {
     [users]
   );
   const clientCount = Math.max(users.length - providerCount, 0);
+  const openReportCount = reports.filter((report) => report.status === "OPEN").length;
 
   const request = useCallback(async (path, options = {}) => {
     const response = await fetch(`${API_BASE_URL}${path}`, {
@@ -67,17 +73,19 @@ const AdminDashboard = () => {
     setError("");
 
     try {
-      const [pendingApplicants, allUsers, allGigs, allReports] = await Promise.all([
+      const [pendingApplicants, allUsers, allGigs, allReports, allBookings] = await Promise.all([
         request("/admin/applicants"),
         request("/users"),
-        request("/gigs"),
+        request("/admin/gigs"),
         request("/admin/reports"),
+        request("/admin/bookings"),
       ]);
 
       setApplicants(pendingApplicants);
       setUsers(allUsers);
       setGigs(allGigs);
       setReports(allReports);
+      setBookings(allBookings);
     } catch (err) {
       setError(err.message || "Could not load admin dashboard.");
     } finally {
@@ -122,6 +130,42 @@ const AdminDashboard = () => {
     }
   };
 
+  const updateReportStatus = async (reportId, status) => {
+    try {
+      setMessage("");
+      setError("");
+      await request(`/admin/reports/${reportId}/status?status=${status}`, { method: "PUT" });
+      await loadAdminDashboard();
+      setMessage(`Report marked as ${status.toLowerCase()}.`);
+    } catch (err) {
+      setError(err.message || "Unable to update report.");
+    }
+  };
+
+  const updateUserStatus = async (userId, status) => {
+    try {
+      setMessage("");
+      setError("");
+      await request(`/admin/users/${userId}/status?status=${status}`, { method: "PUT" });
+      await loadAdminDashboard();
+      setMessage(`User marked as ${status.toLowerCase()}.`);
+    } catch (err) {
+      setError(err.message || "Unable to update user.");
+    }
+  };
+
+  const updateGigStatus = async (gigId, status) => {
+    try {
+      setMessage("");
+      setError("");
+      await request(`/admin/gigs/${gigId}/status?status=${status}`, { method: "PUT" });
+      await loadAdminDashboard();
+      setMessage(`Gig marked as ${status.toLowerCase()}.`);
+    } catch (err) {
+      setError(err.message || "Unable to update gig.");
+    }
+  };
+
   return (
     <main className="admin-shell">
       <aside className="dashboard-sidebar">
@@ -133,6 +177,7 @@ const AdminDashboard = () => {
         <nav className="dashboard-nav" aria-label="Admin sections">
           <a href="#overview">Overview</a>
           <a href="#reports">Reports</a>
+          <a href="#bookings">Bookings</a>
           <a href="#applicants">Applicants</a>
           <a href="#users">Users</a>
           <a href="#gigs">Gigs</a>
@@ -187,6 +232,10 @@ const AdminDashboard = () => {
               <strong>{reports.length}</strong>
               <span>User reports</span>
             </article>
+            <article>
+              <strong>{bookings.length}</strong>
+              <span>Total bookings</span>
+            </article>
           </div>
         </section>
 
@@ -196,7 +245,7 @@ const AdminDashboard = () => {
               <p className="dashboard-kicker">Conflict reports</p>
               <h3>Client and provider reports</h3>
             </div>
-            <span className="status-chip">{reports.length} reports</span>
+            <span className="status-chip">{openReportCount} open</span>
           </div>
 
           <div className="data-list">
@@ -220,13 +269,60 @@ const AdminDashboard = () => {
                   )}
                   <p>{report.details}</p>
                 </div>
-                <span className="status-chip">{report.status}</span>
+                <div className="button-group admin-row-actions">
+                  {["OPEN", "REVIEWED", "RESOLVED"].map((status) => (
+                    <button
+                      disabled={report.status === status}
+                      key={status}
+                      type="button"
+                      onClick={() => updateReportStatus(report.reportID, status)}
+                    >
+                      {status}
+                    </button>
+                  ))}
+                </div>
               </article>
             ))}
           </div>
 
           {!reports.length && !loading && (
             <p className="muted-text">No client or provider reports yet.</p>
+          )}
+        </section>
+
+        <section className="dashboard-panel" id="bookings">
+          <div className="section-heading">
+            <div>
+              <p className="dashboard-kicker">Booking monitor</p>
+              <h3>All service bookings</h3>
+            </div>
+            <span className="status-chip">{bookings.length} bookings</span>
+          </div>
+
+          <div className="data-list">
+            {bookings.map((booking) => (
+              <article className="data-row admin-booking-row" key={booking.bookingID}>
+                <div>
+                  <span className="pill">{formatStatus(booking.status)}</span>
+                  <h4>{booking.gig?.title || "Booked service"}</h4>
+                  <p>
+                    Client: {booking.client?.firstname} {booking.client?.lastname} - Provider: {booking.gig?.provider?.firstname || "Provider"} {booking.gig?.provider?.lastname || ""}
+                  </p>
+                  <p>{booking.bookingDate ? new Date(booking.bookingDate).toLocaleString() : "No schedule"}</p>
+                  <p>{booking.serviceAddress || "No service address"}</p>
+                  {booking.receiptUrl && (
+                    <a className="application-link" href={getImageSource(booking.receiptUrl)} target="_blank" rel="noreferrer">
+                      View receipt
+                    </a>
+                  )}
+                </div>
+                <span className="status-chip">{booking.gig?.category || "Service"}</span>
+              </article>
+            ))}
+          </div>
+
+          {!bookings.length && !loading && (
+            <p className="muted-text">No bookings have been created yet.</p>
           )}
         </section>
 
@@ -301,10 +397,25 @@ const AdminDashboard = () => {
                 <div>
                   <h4>{user.firstname} {user.lastname}</h4>
                   <p>{user.email}</p>
+                  <p>{user.phoneNumber || "No phone"} - {user.address || "No address"}</p>
                 </div>
-                <span className="status-chip">
-                  {user.isAdmin ? "ADMIN" : user.isProvider ? "PROVIDER" : "CLIENT"}
-                </span>
+                <div className="button-group admin-row-actions">
+                  <span className="status-chip">
+                    {user.isAdmin ? "ADMIN" : user.isProvider ? "PROVIDER" : "CLIENT"}
+                  </span>
+                  <span className={`status-chip ${getUserStatus(user) === "DISABLED" ? "danger-status" : "success-status"}`}>
+                    {getUserStatus(user)}
+                  </span>
+                  {!user.isAdmin && (
+                    <button
+                      className={getUserStatus(user) === "DISABLED" ? "" : "danger-inline"}
+                      type="button"
+                      onClick={() => updateUserStatus(user.userID, getUserStatus(user) === "DISABLED" ? "ACTIVE" : "DISABLED")}
+                    >
+                      {getUserStatus(user) === "DISABLED" ? "Enable" : "Disable"}
+                    </button>
+                  )}
+                </div>
               </article>
             ))}
           </div>
@@ -324,8 +435,20 @@ const AdminDashboard = () => {
                 <div>
                   <h4>{gig.title}</h4>
                   <p>{gig.category} - PHP {Number(gig.price || 0).toLocaleString()}</p>
+                  <p>Provider: {gig.provider?.firstname || "Provider"} {gig.provider?.lastname || ""}</p>
                 </div>
-                <span className="pill">{gig.provider?.firstname || "Provider"}</span>
+                <div className="button-group admin-row-actions">
+                  <span className={`status-chip ${getGigStatus(gig) === "DISABLED" ? "danger-status" : "success-status"}`}>
+                    {getGigStatus(gig)}
+                  </span>
+                  <button
+                    className={getGigStatus(gig) === "DISABLED" ? "" : "danger-inline"}
+                    type="button"
+                    onClick={() => updateGigStatus(gig.gigID, getGigStatus(gig) === "DISABLED" ? "ACTIVE" : "DISABLED")}
+                  >
+                    {getGigStatus(gig) === "DISABLED" ? "Enable" : "Disable"}
+                  </button>
+                </div>
               </article>
             ))}
           </div>
