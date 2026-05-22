@@ -1,14 +1,36 @@
 import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
+import { clearAuthSession, getAuthHeaders } from "../utils/auth";
 import "../styles/dashboard.css";
 
 const API_BASE_URL = "http://localhost:8080/api";
 const API_ORIGIN = API_BASE_URL.replace("/api", "");
 
 const historyStatuses = ["COMPLETED", "CANCELLED", "REJECTED"];
+const bookingStatusSteps = ["PENDING", "ACCEPTED", "IN_PROGRESS", "COMPLETED"];
 
 const getImageSource = (image) =>
   image?.startsWith("/uploads/") ? `${API_ORIGIN}${image}` : image;
+
+const getStatusClass = (status = "") => {
+  const normalized = status.toUpperCase();
+  if (["COMPLETED"].includes(normalized)) return "success-status";
+  if (["REJECTED", "CANCELLED"].includes(normalized)) return "danger-status";
+  if (["PENDING"].includes(normalized)) return "warning-status";
+  return "info-status";
+};
+
+const formatStatus = (status = "") => status.replace(/_/g, " ");
+
+const getStepClass = (bookingStatus, step) => {
+  const status = bookingStatus || "";
+  if (["CANCELLED", "REJECTED"].includes(status)) return "inactive";
+  const currentIndex = bookingStatusSteps.indexOf(status);
+  const stepIndex = bookingStatusSteps.indexOf(step);
+  if (currentIndex < 0 || stepIndex > currentIndex) return "inactive";
+  if (stepIndex === currentIndex) return "current";
+  return "done";
+};
 
 const ClientBookings = () => {
   const navigate = useNavigate();
@@ -27,6 +49,7 @@ const ClientBookings = () => {
       ...options,
       headers: {
         "Content-Type": "application/json",
+        ...getAuthHeaders(),
         ...(options.headers || {}),
       },
     });
@@ -49,6 +72,7 @@ const ClientBookings = () => {
 
     const response = await fetch(`${API_BASE_URL}/uploads/images`, {
       method: "POST",
+      headers: getAuthHeaders(),
       body: formData,
     });
 
@@ -82,7 +106,9 @@ const ClientBookings = () => {
 
   useEffect(() => {
     const savedUser = localStorage.getItem("loggedUser");
-    if (!savedUser) {
+    const savedToken = localStorage.getItem("authToken");
+    if (!savedUser || !savedToken) {
+      clearAuthSession();
       navigate("/login");
       return;
     }
@@ -217,22 +243,25 @@ const ClientBookings = () => {
     const canReview = isHistory && booking.status === "COMPLETED" && booking.gig?.gigID;
     const reviewForm = reviewForms[booking.bookingID] || { rating: 5, comment: "" };
     const statusLabel = isAccepted ? "SCHEDULED" : isInProgress ? "IN PROGRESS" : booking.status;
+    const hasReceiptFile = Boolean(receiptFiles[booking.bookingID]);
 
     return (
       <article className="client-booking-card" key={booking.bookingID}>
-        <div className="provider-booking-main">
+        <div className="client-booking-main">
           <div>
-            <span className="pill">{booking.gig?.category || "Service"}</span>
+            <div className="inline-pills">
+              <span className="pill">{booking.gig?.category || "Service"}</span>
+              <span className={`status-chip ${getStatusClass(booking.status)}`}>{statusLabel}</span>
+            </div>
             <h4>{booking.gig?.title || "Booked service"}</h4>
-            <p>{new Date(booking.bookingDate).toLocaleString()}</p>
-            <p>Provider: {booking.gig?.provider?.firstname || "Provider"} {booking.gig?.provider?.lastname || ""}</p>
           </div>
-          <span className="status-chip">{statusLabel}</span>
+          <strong>{booking.bookingDate ? new Date(booking.bookingDate).toLocaleString() : "No schedule"}</strong>
         </div>
 
-        <div className="provider-booking-details">
-          <p><strong>Address:</strong> {booking.serviceAddress || "No address provided"}</p>
-          {booking.clientNotes && <p><strong>Notes:</strong> {booking.clientNotes}</p>}
+        <div className="client-booking-details">
+          <p><span>Provider</span><strong>{booking.gig?.provider?.firstname || "Provider"} {booking.gig?.provider?.lastname || ""}</strong></p>
+          <p><span>Address</span><strong>{booking.serviceAddress || "No address provided"}</strong></p>
+          {booking.clientNotes && <p className="wide-field"><span>Notes</span><strong>{booking.clientNotes}</strong></p>}
           {booking.receiptUrl && (
             <a className="application-link" href={getImageSource(booking.receiptUrl)} target="_blank" rel="noreferrer">
               View receipt
@@ -240,11 +269,19 @@ const ClientBookings = () => {
           )}
         </div>
 
+        <div className="booking-progress" aria-label={`Booking status ${formatStatus(booking.status)}`}>
+          {bookingStatusSteps.map((step) => (
+            <span className={getStepClass(booking.status, step)} key={step}>
+              {formatStatus(step)}
+            </span>
+          ))}
+        </div>
+
         {!isHistory && (
           <div className="client-booking-actions">
             {(isAccepted || isInProgress) && (
               <label className="receipt-upload">
-                Receipt image
+                <span>Receipt image</span>
                 <input
                   type="file"
                   accept="image/*"
@@ -256,7 +293,12 @@ const ClientBookings = () => {
               </label>
             )}
             {(isAccepted || isInProgress) && (
-              <button className="primary-action compact-action" type="button" onClick={() => submitReceipt(booking.bookingID)}>
+              <button
+                className="primary-action compact-action"
+                type="button"
+                disabled={!hasReceiptFile}
+                onClick={() => submitReceipt(booking.bookingID)}
+              >
                 Submit receipt
               </button>
             )}
@@ -281,6 +323,10 @@ const ClientBookings = () => {
 
         {canReview && (
           <div className="history-review-form">
+            <div className="review-form-heading">
+              <p className="dashboard-kicker">Review service</p>
+              <h4>How was the work?</h4>
+            </div>
             <label>
               Rating
               <select
@@ -300,6 +346,8 @@ const ClientBookings = () => {
             <label>
               Review
               <textarea
+                required
+                minLength="10"
                 placeholder="Share your experience with this completed service."
                 value={reviewForm.comment}
                 onChange={(event) => setReviewForms({
@@ -308,7 +356,12 @@ const ClientBookings = () => {
                 })}
               />
             </label>
-            <button className="primary-action compact-action" type="button" onClick={() => submitReview(booking)}>
+            <button
+              className="primary-action compact-action"
+              type="button"
+              disabled={!reviewForm.comment.trim()}
+              onClick={() => submitReview(booking)}
+            >
               Post review
             </button>
           </div>
@@ -344,6 +397,21 @@ const ClientBookings = () => {
 
         {!loading && (
           <>
+            <div className="client-booking-summary">
+              <article>
+                <strong>{scheduledBookings.length}</strong>
+                <span>Scheduled</span>
+              </article>
+              <article>
+                <strong>{historyBookings.length}</strong>
+                <span>History</span>
+              </article>
+              <article>
+                <strong>{bookings.filter((booking) => booking.status === "COMPLETED").length}</strong>
+                <span>Completed</span>
+              </article>
+            </div>
+
             <section className="booking-section">
               <div className="section-heading">
                 <div>
@@ -354,7 +422,13 @@ const ClientBookings = () => {
               <div className="provider-booking-list">
                 {scheduledBookings.map((booking) => renderBooking(booking))}
               </div>
-              {!scheduledBookings.length && <p className="muted-text">No scheduled bookings yet.</p>}
+              {!scheduledBookings.length && (
+                <div className="dashboard-empty-state">
+                  <h4>No scheduled bookings</h4>
+                  <p>Book a service from the dashboard and your request will appear here.</p>
+                  <Link className="primary-action compact-action" to="/dashboard">Browse gigs</Link>
+                </div>
+              )}
             </section>
 
             <section className="booking-section">
@@ -367,7 +441,12 @@ const ClientBookings = () => {
               <div className="provider-booking-list">
                 {historyBookings.map((booking) => renderBooking(booking, true))}
               </div>
-              {!historyBookings.length && <p className="muted-text">No booking history yet.</p>}
+              {!historyBookings.length && (
+                <div className="dashboard-empty-state">
+                  <h4>No booking history</h4>
+                  <p>Completed, cancelled, and rejected bookings will appear here.</p>
+                </div>
+              )}
             </section>
           </>
         )}

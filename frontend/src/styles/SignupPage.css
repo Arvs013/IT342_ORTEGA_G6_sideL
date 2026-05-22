@@ -14,12 +14,39 @@
 
 .signup-card .form-group input[name="name"],
 .signup-card .form-group input[name="email"],
-.signup-card .form-group input[name="password"] {
+.signup-card .form-group input[name="password"],
+.signup-card .form-group input[name="confirmPassword"],
+.password-rules {
   grid-column: 1 / -1;
+}
+
+.password-rules {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 7px 12px;
+  padding: 12px;
+  border: 1px solid rgba(148, 163, 184, 0.32);
+  border-radius: 8px;
+  background: rgba(248, 250, 252, 0.86);
+  color: #64748b;
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.password-rules span {
+  line-height: 1.35;
+}
+
+.password-rules .passed {
+  color: #157347;
 }
 
 @media (max-width: 560px) {
   .signup-card .form-group {
+    grid-template-columns: 1fr;
+  }
+
+  .password-rules {
     grid-template-columns: 1fr;
   }
 }

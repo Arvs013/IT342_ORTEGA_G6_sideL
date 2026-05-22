@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
+import { storeAuthSession } from "../utils/auth";
 import "../styles/LoginPage.css";
 
 const LoginPage = () => {
@@ -35,14 +36,17 @@ const LoginPage = () => {
         body: JSON.stringify({ email, password }),
       });
 
-      const data = await response.json();
+      const contentType = response.headers.get("content-type") || "";
+      const data = contentType.includes("application/json")
+        ? await response.json()
+        : await response.text();
 
       if (!response.ok) {
-        throw new Error(data.message || "Invalid email or password");
+        throw new Error(typeof data === "string" ? data : data.message || "Invalid email or password");
       }
 
-      localStorage.setItem("loggedUser", JSON.stringify(data));
-      navigate(data.isAdmin ? "/admin/dashboard" : "/dashboard");
+      const loggedUser = storeAuthSession(data);
+      navigate(loggedUser.isAdmin ? "/admin/dashboard" : "/dashboard");
     } catch (err) {
       setError(err.message || "Login failed. Please try again.");
     } finally {

@@ -6,11 +6,19 @@ const SignupPage = () => {
   const navigate = useNavigate();
 
   const API_BASE_URL = "http://localhost:8080/api/users/register";
+  const passwordRules = [
+    { label: "At least 8 characters", test: (value) => value.length >= 8 },
+    { label: "One uppercase letter", test: (value) => /[A-Z]/.test(value) },
+    { label: "One lowercase letter", test: (value) => /[a-z]/.test(value) },
+    { label: "One number", test: (value) => /\d/.test(value) },
+    { label: "One special character", test: (value) => /[^A-Za-z0-9]/.test(value) },
+  ];
 
   const [formData, setFormData] = useState({
     name: "",
     email: "",
     password: "",
+    confirmPassword: "",
     phoneNumber: "",
     address: "",
   });
@@ -36,8 +44,20 @@ const SignupPage = () => {
 
     if (loading) return;
 
-    if (!formData.name || !formData.email || !formData.password) {
+    const passwordIsStrong = passwordRules.every((rule) => rule.test(formData.password));
+
+    if (!formData.name.trim() || !formData.email.trim() || !formData.password) {
       setError("Please fill name, email, and password.");
+      return;
+    }
+
+    if (!passwordIsStrong) {
+      setError("Please create a stronger password before signing up.");
+      return;
+    }
+
+    if (formData.password !== formData.confirmPassword) {
+      setError("Passwords do not match.");
       return;
     }
 
@@ -46,16 +66,16 @@ const SignupPage = () => {
     setSuccess("");
 
     try {
-      const [firstname, ...rest] = formData.name.split(" ");
+      const [firstname, ...rest] = formData.name.trim().split(/\s+/);
       const lastname = rest.join(" ");
 
       const payload = {
         firstname: firstname || "",
         lastname: lastname || "",
-        email: formData.email,
+        email: formData.email.trim(),
         password: formData.password,
-        phoneNumber: formData.phoneNumber,
-        address: formData.address,
+        phoneNumber: formData.phoneNumber.trim(),
+        address: formData.address.trim(),
       };
 
       const response = await fetch(API_BASE_URL, {
@@ -66,15 +86,16 @@ const SignupPage = () => {
         body: JSON.stringify(payload),
       });
 
-      const data = await response.json();
+      const contentType = response.headers.get("content-type") || "";
+      const data = contentType.includes("application/json")
+        ? await response.json()
+        : await response.text();
 
       if (!response.ok) {
-        throw new Error(data.message || "Signup failed");
+        throw new Error(typeof data === "string" ? data : data.message || "Signup failed");
       }
 
       setSuccess("Account created successfully!");
-
-      localStorage.setItem("loggedUser", JSON.stringify(data));
 
       setTimeout(() => {
         navigate("/login");
@@ -130,6 +151,25 @@ const SignupPage = () => {
             name="password"
             placeholder="Password"
             value={formData.password}
+            onChange={handleChange}
+          />
+
+          <div className="password-rules">
+            {passwordRules.map((rule) => {
+              const passed = rule.test(formData.password);
+              return (
+                <span className={passed ? "passed" : ""} key={rule.label}>
+                  {passed ? "✓" : "•"} {rule.label}
+                </span>
+              );
+            })}
+          </div>
+
+          <input
+            type="password"
+            name="confirmPassword"
+            placeholder="Confirm Password"
+            value={formData.confirmPassword}
             onChange={handleChange}
           />
 
