@@ -58,6 +58,12 @@ const getNextBookingStatuses = (status) => {
 
 const formatStatus = (status = "") => status.replace(/_/g, " ");
 
+const getMinimumBookingDateTime = () => {
+  const now = new Date();
+  now.setMinutes(now.getMinutes() - now.getTimezoneOffset() + 30);
+  return now.toISOString().slice(0, 16);
+};
+
 const normalizeCategory = (category = "") =>
   category.toString().trim().toUpperCase().replace(/[\s-]+/g, "_");
 
@@ -557,6 +563,11 @@ const Dashboard = () => {
 
     if (!bookingForm.bookingDate) {
       setError("Please choose a booking date and time first.");
+      return;
+    }
+
+    if (new Date(bookingForm.bookingDate).getTime() < Date.now() + 30 * 60 * 1000) {
+      setError("Please choose a booking schedule at least 30 minutes from now.");
       return;
     }
 
@@ -1083,7 +1094,10 @@ const Dashboard = () => {
         </section>
 
         {!visibleGigs.length && !loading && (
-          <p className="muted-text">No gigs found for your search yet.</p>
+          <div className="dashboard-empty-state marketplace-empty-state">
+            <h4>No gigs found</h4>
+            <p>Try another keyword or category. Approved provider services will show here once they are active.</p>
+          </div>
         )}
       </section>
 
@@ -1253,15 +1267,19 @@ const Dashboard = () => {
                 Booking date and time
                 <input
                   type="datetime-local"
+                  min={getMinimumBookingDateTime()}
+                  required
                   value={bookingForm.bookingDate}
                   onChange={(event) => setBookingForm({ ...bookingForm, bookingDate: event.target.value })}
                 />
+                <span className="field-hint">Choose a schedule at least 30 minutes from now.</span>
               </label>
 
               <label>
                 First name
                 <input
                   type="text"
+                  required
                   value={bookingForm.firstname}
                   onChange={(event) => setBookingForm({ ...bookingForm, firstname: event.target.value })}
                 />
@@ -1271,6 +1289,7 @@ const Dashboard = () => {
                 Last name
                 <input
                   type="text"
+                  required
                   value={bookingForm.lastname}
                   onChange={(event) => setBookingForm({ ...bookingForm, lastname: event.target.value })}
                 />
@@ -1280,6 +1299,7 @@ const Dashboard = () => {
                 Email
                 <input
                   type="email"
+                  required
                   value={bookingForm.email}
                   onChange={(event) => setBookingForm({ ...bookingForm, email: event.target.value })}
                 />
@@ -1289,6 +1309,7 @@ const Dashboard = () => {
                 Phone number
                 <input
                   type="text"
+                  required
                   value={bookingForm.phoneNumber}
                   onChange={(event) => setBookingForm({ ...bookingForm, phoneNumber: event.target.value })}
                 />
@@ -1298,6 +1319,7 @@ const Dashboard = () => {
                 Service address
                 <input
                   type="text"
+                  required
                   value={bookingForm.address}
                   onChange={(event) => setBookingForm({ ...bookingForm, address: event.target.value })}
                 />
