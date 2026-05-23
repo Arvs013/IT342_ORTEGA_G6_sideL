@@ -9,4 +9,5 @@ import java.util.List;
 @Repository
 public interface ReportRepository extends JpaRepository<ReportEntity, Integer> {
     List<ReportEntity> findAllByOrderByCreatedAtDesc();
+    List<ReportEntity> findByReporter_UserIDOrReportedUser_UserIDOrderByCreatedAtDesc(Integer reporterId, Integer reportedUserId);
 }

@@ -8,6 +8,9 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.time.LocalDateTime;
+import java.util.List;
+
 @RestController
 @RequestMapping("/api/reports")
 public class ReportController {
@@ -51,11 +54,62 @@ public class ReportController {
         ).orElse(ResponseEntity.notFound().build());
     }
 
+    @GetMapping("/user/{userId}")
+    public ResponseEntity<?> getUserReports(@PathVariable Integer userId) {
+        if (!userRepository.existsById(userId)) {
+            return ResponseEntity.notFound().build();
+        }
+        List<ReportSummary> reports = reportRepository
+                .findByReporter_UserIDOrReportedUser_UserIDOrderByCreatedAtDesc(userId, userId)
+                .stream()
+                .map(report -> new ReportSummary(
+                        report.getReportID(),
+                        new UserSummary(
+                                report.getReporter().getUserID(),
+                                report.getReporter().getFirstname(),
+                                report.getReporter().getLastname(),
+                                report.getReporter().getEmail()
+                        ),
+                        new UserSummary(
+                                report.getReportedUser().getUserID(),
+                                report.getReportedUser().getFirstname(),
+                                report.getReportedUser().getLastname(),
+                                report.getReportedUser().getEmail()
+                        ),
+                        report.getBooking() == null ? null : report.getBooking().getBookingID(),
+                        report.getReason(),
+                        report.getDetails(),
+                        report.getStatus(),
+                        report.getCreatedAt()
+                ))
+                .toList();
+
+        return ResponseEntity.ok(reports);
+    }
+
     public record ReportRequest(
             Integer reporterId,
             Integer reportedUserId,
             Integer bookingId,
             String reason,
             String details
+    ) {}
+
+    public record UserSummary(
+            Integer userID,
+            String firstname,
+            String lastname,
+            String email
+    ) {}
+
+    public record ReportSummary(
+            Integer reportID,
+            UserSummary reporter,
+            UserSummary reportedUser,
+            Integer bookingId,
+            String reason,
+            String details,
+            String status,
+            LocalDateTime createdAt
     ) {}
 }
