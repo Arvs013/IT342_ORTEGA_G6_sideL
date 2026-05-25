@@ -27,6 +27,7 @@ data class Gig(
     val providerId: Int,
     val providerName: String,
     val imageUrl: String,
+    val imageUrls: List<String>,
 )
 
 data class Review(
