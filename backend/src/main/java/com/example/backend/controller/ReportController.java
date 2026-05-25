@@ -68,13 +68,15 @@ public class ReportController {
                                 report.getReporter().getUserID(),
                                 report.getReporter().getFirstname(),
                                 report.getReporter().getLastname(),
-                                report.getReporter().getEmail()
+                                report.getReporter().getEmail(),
+                                report.getReporter().getProfileImageUrl()
                         ),
                         new UserSummary(
                                 report.getReportedUser().getUserID(),
                                 report.getReportedUser().getFirstname(),
                                 report.getReportedUser().getLastname(),
-                                report.getReportedUser().getEmail()
+                                report.getReportedUser().getEmail(),
+                                report.getReportedUser().getProfileImageUrl()
                         ),
                         report.getBooking() == null ? null : report.getBooking().getBookingID(),
                         report.getReason(),
@@ -99,7 +101,8 @@ public class ReportController {
             Integer userID,
             String firstname,
             String lastname,
-            String email
+            String email,
+            String profileImageUrl
     ) {}
 
     public record ReportSummary(

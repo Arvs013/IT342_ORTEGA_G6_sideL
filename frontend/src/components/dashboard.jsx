@@ -59,6 +59,39 @@ const getNextBookingStatuses = (status) => {
 
 const formatStatus = (status = "") => status.replace(/_/g, " ");
 
+const getStatusClass = (status = "") => {
+  const normalized = status.toUpperCase();
+  if (normalized === "COMPLETED") return "success-status";
+  if (["REJECTED", "CANCELLED"].includes(normalized)) return "danger-status";
+  if (normalized === "PENDING") return "warning-status";
+  return "info-status";
+};
+
+const formatBookingDateTime = (value, fallback = "No schedule") => {
+  if (!value) return fallback;
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return value;
+
+  return date.toLocaleString("en-US", {
+    month: "2-digit",
+    day: "2-digit",
+    year: "numeric",
+    hour: "numeric",
+    minute: "2-digit",
+    hour12: true,
+  });
+};
+
+const sortNewestBookings = (bookingList = []) =>
+  [...bookingList].sort((a, b) => {
+    const first = new Date(a.bookingDate || a.createdAt || 0).getTime();
+    const second = new Date(b.bookingDate || b.createdAt || 0).getTime();
+    return second - first;
+  });
+
+const getUserName = (person, fallback = "User") =>
+  `${person?.firstname || ""} ${person?.lastname || ""}`.trim() || fallback;
+
 const getMinimumBookingDateTime = () => {
   const now = new Date();
   now.setMinutes(now.getMinutes() - now.getTimezoneOffset() + 30);
@@ -246,7 +279,7 @@ const Dashboard = () => {
           request(`/bookings/provider/${freshUser.userID}`),
         ]);
         setMyGigs(providerGigs);
-        setProviderJobs(incomingJobs);
+        setProviderJobs(sortNewestBookings(incomingJobs));
       } else {
         setMyGigs([]);
         setProviderJobs([]);
@@ -852,19 +885,32 @@ const Dashboard = () => {
                     <div>
                       <div className="inline-pills">
                         <span className="pill">{booking.gig?.category || "Service"}</span>
-                        <span className={`status-chip ${booking.status === "PENDING" ? "warning-status" : booking.status === "CANCELLED" || booking.status === "REJECTED" ? "danger-status" : booking.status === "COMPLETED" ? "success-status" : "info-status"}`}>
+                        <span className={`status-chip ${getStatusClass(booking.status)}`}>
                           {formatStatus(booking.status)}
                         </span>
                       </div>
                       <h4>{booking.gig?.title || "Booked service"}</h4>
-                      <p>{new Date(booking.bookingDate).toLocaleString()}</p>
+                      <p>Request #{booking.bookingID}</p>
                     </div>
+                    <strong className="booking-card-date">{formatBookingDateTime(booking.bookingDate)}</strong>
                   </div>
 
                   <div className="provider-booking-details">
                     <div>
-                      <span>Client</span>
-                      <strong>{booking.contactName || `${booking.client?.firstname || ""} ${booking.client?.lastname || ""}`.trim() || "Client"}</strong>
+                      <span>Booking</span>
+                      <strong>#{booking.bookingID}</strong>
+                    </div>
+                    <div>
+                      <span>Status</span>
+                      <strong>{formatStatus(booking.status)}</strong>
+                    </div>
+                    <div>
+                      <span>Client name</span>
+                      <strong>{booking.contactName || getUserName(booking.client, "Client")}</strong>
+                    </div>
+                    <div>
+                      <span>Provider name</span>
+                      <strong>{getUserName(booking.gig?.provider || user, "Provider")}</strong>
                     </div>
                     <div>
                       <span>Email</span>
@@ -877,6 +923,14 @@ const Dashboard = () => {
                     <div>
                       <span>Address</span>
                       <strong>{booking.serviceAddress || booking.client?.address || "No address provided"}</strong>
+                    </div>
+                    <div>
+                      <span>Date started</span>
+                      <strong>{formatBookingDateTime(booking.dateStarted, "Not started yet")}</strong>
+                    </div>
+                    <div>
+                      <span>Date finished</span>
+                      <strong>{formatBookingDateTime(booking.dateFinished, "Not finished yet")}</strong>
                     </div>
                     {booking.clientNotes && (
                       <div className="wide-field">
@@ -891,6 +945,7 @@ const Dashboard = () => {
                       <button
                         key={status}
                         type="button"
+                        className={status === "CANCELLED" || status === "REJECTED" ? "danger-inline" : ""}
                         onClick={() => updateBookingStatus(booking.bookingID, status)}
                       >
                         {formatStatus(status)}
@@ -1028,6 +1083,7 @@ const Dashboard = () => {
             const averageRating = getAverageRating(gig.gigID);
             const providerName = `${gig.provider?.firstname || "Provider"} ${gig.provider?.lastname || ""}`.trim();
             const providerInitials = `${gig.provider?.firstname?.[0] || ""}${gig.provider?.lastname?.[0] || ""}` || "SL";
+            const providerPhoto = gig.provider?.profileImageUrl;
             const gigImages = getGigImages(gig);
             const activeImageIndex = Math.min(imageIndexes[gig.gigID] || 0, Math.max(gigImages.length - 1, 0));
             const activeImage = gigImages[activeImageIndex];
@@ -1036,7 +1092,11 @@ const Dashboard = () => {
               <article className="gig-card marketplace-card" key={gig.gigID}>
                 <button className="provider-profile-button" type="button" onClick={() => setSelectedGig(gig)}>
                   <span className="provider-card-avatar" aria-hidden="true">
-                    {providerInitials.toUpperCase()}
+                    {providerPhoto ? (
+                      <img src={getImageSource(providerPhoto)} alt="" />
+                    ) : (
+                      providerInitials.toUpperCase()
+                    )}
                   </span>
                   <span className="provider-card-meta">
                     <strong>{providerName}</strong>
@@ -1116,6 +1176,13 @@ const Dashboard = () => {
             onClick={(event) => event.stopPropagation()}
           >
             <div className="profile-drawer-header">
+              <span className="provider-modal-avatar" aria-hidden="true">
+                {selectedGig.provider?.profileImageUrl ? (
+                  <img src={getImageSource(selectedGig.provider.profileImageUrl)} alt="" />
+                ) : (
+                  `${selectedGig.provider?.firstname?.[0] || ""}${selectedGig.provider?.lastname?.[0] || ""}`.toUpperCase() || "SL"
+                )}
+              </span>
               <div>
                 <p className="dashboard-kicker">Provider profile</p>
                 <h2 id="profile-modal-title">{selectedGig.provider?.firstname} {selectedGig.provider?.lastname}</h2>
@@ -1174,9 +1241,20 @@ const Dashboard = () => {
                 <div className="data-list">
                   {getGigReviews(selectedGig.gigID).map((review) => (
                     <article className="review-row" key={review.reviewID}>
-                      <strong>{review.rating}/5</strong>
+                      <div className="review-author-line">
+                        <span className="review-avatar" aria-hidden="true">
+                          {review.client?.profileImageUrl ? (
+                            <img src={getImageSource(review.client.profileImageUrl)} alt="" />
+                          ) : (
+                            `${review.client?.firstname?.[0] || ""}${review.client?.lastname?.[0] || ""}`.toUpperCase() || "CL"
+                          )}
+                        </span>
+                        <div>
+                          <strong>{review.rating}/5</strong>
+                          <span>{review.client?.firstname} {review.client?.lastname}</span>
+                        </div>
+                      </div>
                       <p>{review.comment || "No written comment."}</p>
-                      <span>{review.client?.firstname} {review.client?.lastname}</span>
                     </article>
                   ))}
                 </div>

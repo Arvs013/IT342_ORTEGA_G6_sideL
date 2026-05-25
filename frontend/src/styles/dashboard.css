@@ -109,11 +109,22 @@ button {
   width: 76px;
   height: 76px;
   place-items: center;
+  overflow: hidden;
   border-radius: 50%;
   background: #e8f5f0;
   color: var(--green-dark);
   font-size: 22px;
   font-weight: 900;
+}
+
+.my-profile-avatar img,
+.profile-avatar img,
+.provider-card-avatar img,
+.provider-modal-avatar img,
+.review-avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
 }
 
 .my-profile-title {
@@ -215,6 +226,75 @@ button {
   padding: 18px;
 }
 
+.profile-report-card {
+  display: grid;
+  gap: 14px;
+  margin-top: 18px;
+  padding: 18px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: #f8fafb;
+}
+
+.profile-report-card h2 {
+  margin: 4px 0 0;
+  letter-spacing: 0;
+}
+
+.profile-report-list {
+  display: grid;
+  gap: 10px;
+}
+
+.profile-report-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(220px, 0.42fr);
+  gap: 14px;
+  padding: 14px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: #ffffff;
+}
+
+.profile-report-row h4 {
+  margin: 8px 0 6px;
+  letter-spacing: 0;
+}
+
+.profile-report-row p {
+  margin: 0;
+  color: var(--muted);
+  line-height: 1.5;
+}
+
+.profile-report-meta {
+  display: grid;
+  align-content: start;
+  gap: 8px;
+}
+
+.profile-report-meta p {
+  display: grid;
+  gap: 3px;
+  padding: 10px;
+  border: 1px solid #edf1f4;
+  border-radius: 8px;
+  background: #fbfcfd;
+}
+
+.profile-report-meta span {
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 900;
+  text-transform: uppercase;
+}
+
+.profile-report-meta strong {
+  color: var(--ink);
+  font-size: 13px;
+  line-height: 1.4;
+}
+
 .profile-form-heading {
   grid-column: 1 / -1;
   margin-bottom: 2px;
@@ -251,17 +331,29 @@ button {
   margin-top: 36px;
 }
 
-.dashboard-nav a {
+.dashboard-nav a,
+.dashboard-nav button {
   display: block;
+  width: 100%;
   padding: 12px 14px;
   border: 1px solid rgba(255, 255, 255, 0.14);
   border-radius: 8px;
+  background: transparent;
   color: #eef4f8;
+  font-weight: 800;
+  text-align: left;
   text-decoration: none;
 }
 
-.dashboard-nav a:hover {
+.dashboard-nav a:hover,
+.dashboard-nav button:hover,
+.dashboard-nav button.active {
   background: rgba(255, 255, 255, 0.08);
+}
+
+.dashboard-nav button.active {
+  border-color: rgba(155, 217, 200, 0.65);
+  color: #ffffff;
 }
 
 .dashboard-content {
@@ -330,6 +422,7 @@ button {
   width: 34px;
   height: 34px;
   place-items: center;
+  overflow: hidden;
   border-radius: 50%;
   background: #e8f5f0;
   color: var(--green-dark);
@@ -412,7 +505,7 @@ button {
   padding: 16px;
   border: 1px solid var(--line);
   border-radius: 8px;
-  background: #ffffff;
+  background: linear-gradient(180deg, #ffffff 0%, #f8fafb 100%);
   box-shadow: 0 10px 22px rgba(23, 32, 42, 0.04);
 }
 
@@ -436,6 +529,50 @@ button {
 
 .admin-section {
   overflow: hidden;
+}
+
+.admin-filter-panel {
+  display: grid;
+  grid-template-columns: minmax(260px, 1fr) minmax(180px, 260px);
+  gap: 12px;
+  align-items: end;
+  padding: 16px;
+  border-color: #cfd9e3;
+  background: #ffffff;
+  box-shadow: 0 10px 26px rgba(23, 32, 42, 0.05);
+}
+
+.admin-search-field,
+.admin-filter-field {
+  display: grid;
+  gap: 7px;
+}
+
+.admin-search-field span,
+.admin-filter-field span {
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 900;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.admin-search-field input,
+.admin-filter-field select {
+  width: 100%;
+  min-height: 44px;
+  padding: 0 12px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: #ffffff;
+  color: var(--ink);
+}
+
+.admin-search-field input:focus,
+.admin-filter-field select:focus {
+  border-color: var(--green);
+  box-shadow: 0 0 0 3px rgba(22, 113, 95, 0.12);
+  outline: none;
 }
 
 .marketplace-tools {
@@ -494,6 +631,17 @@ button {
 .section-heading h3 {
   margin-top: 4px;
   font-size: 22px;
+}
+
+.section-heading .status-chip {
+  flex-shrink: 0;
+}
+
+.admin-heading-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 8px;
 }
 
 .primary-action,
@@ -816,6 +964,19 @@ button {
   gap: 7px;
 }
 
+.receipt-upload strong {
+  max-width: 260px;
+  overflow: hidden;
+  padding: 10px 12px;
+  border: 1px dashed #c8d4dc;
+  border-radius: 8px;
+  background: #ffffff;
+  color: var(--ink);
+  font-size: 13px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 .receipt-upload input {
   max-width: 260px;
 }
@@ -861,6 +1022,17 @@ button {
   align-items: flex-start;
   justify-content: space-between;
   gap: 14px;
+}
+
+.booking-card-date {
+  flex: 0 0 auto;
+  padding: 9px 11px;
+  border: 1px solid #d9e3ea;
+  border-radius: 8px;
+  background: #f8fafb;
+  color: var(--ink);
+  font-size: 13px;
+  text-align: right;
 }
 
 .provider-booking-main h4 {
@@ -940,7 +1112,11 @@ button {
 }
 
 .provider-booking-actions {
+  align-items: center;
+  justify-content: flex-end;
   padding-top: 2px;
+  border-top: 1px solid #edf1f4;
+  padding-top: 12px;
 }
 
 .provider-gig-row h4 {
@@ -1239,6 +1415,7 @@ button {
   width: 40px;
   height: 40px;
   place-items: center;
+  overflow: hidden;
   border: 1px solid #d5e2da;
   border-radius: 50%;
   background: #eef7f0;
@@ -1311,6 +1488,21 @@ button {
   align-items: center;
   justify-content: space-between;
   gap: 14px;
+}
+
+.provider-modal-avatar {
+  display: grid;
+  flex: 0 0 58px;
+  width: 58px;
+  height: 58px;
+  place-items: center;
+  overflow: hidden;
+  border: 1px solid #d5e2da;
+  border-radius: 50%;
+  background: #eef7f0;
+  color: var(--green-dark);
+  font-size: 16px;
+  font-weight: 900;
 }
 
 .profile-drawer-header h2 {
@@ -1387,21 +1579,41 @@ button {
   background: #f8fafb;
 }
 
-.review-row strong,
-.review-row span {
-  display: block;
-}
-
 .review-row p {
   margin: 7px 0;
   color: var(--ink);
   line-height: 1.5;
 }
 
-.review-row span {
+.review-author-line {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.review-author-line strong,
+.review-author-line span {
+  display: block;
+}
+
+.review-author-line span {
   color: var(--muted);
   font-size: 13px;
   font-weight: 800;
+}
+
+.review-avatar {
+  display: grid;
+  flex: 0 0 36px;
+  width: 36px;
+  height: 36px;
+  place-items: center;
+  overflow: hidden;
+  border-radius: 50%;
+  background: #e8f5f0;
+  color: var(--green-dark);
+  font-size: 12px;
+  font-weight: 900;
 }
 
 .review-form {
@@ -1516,24 +1728,24 @@ button {
 
 .data-list {
   display: grid;
-  gap: 10px;
+  gap: 12px;
 }
 
 .data-row {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 16px;
-  padding: 16px;
+  gap: 18px;
+  padding: 18px;
   border: 1px solid var(--line);
-  border-radius: 8px;
-  background: #ffffff;
-  box-shadow: 0 10px 22px rgba(23, 32, 42, 0.04);
+  border-radius: 10px;
+  background: linear-gradient(180deg, #ffffff 0%, #fbfcfd 100%);
+  box-shadow: 0 12px 28px rgba(23, 32, 42, 0.05);
 }
 
 .data-row:hover {
   border-color: #c9d4dd;
-  background: #fbfcfd;
+  box-shadow: 0 16px 34px rgba(23, 32, 42, 0.08);
 }
 
 .data-row.stacked {
@@ -1647,6 +1859,10 @@ button {
   font-size: 12px;
 }
 
+.admin-row-actions button {
+  min-width: 88px;
+}
+
 .button-group button:hover {
   border-color: var(--green);
   color: var(--green-dark);
@@ -1666,7 +1882,7 @@ button {
   align-items: center;
   justify-content: flex-end;
   align-self: center;
-  min-width: 220px;
+  min-width: 230px;
 }
 
 .admin-row-main {
@@ -1706,6 +1922,7 @@ button {
   margin: 0;
   padding: 10px 12px;
   border-radius: 8px;
+  border: 1px solid #edf1f5;
   background: #f8fafb;
   color: var(--muted);
   line-height: 1.5;
@@ -1721,10 +1938,13 @@ button {
 }
 
 .applicant-details {
+  display: grid;
+  gap: 8px;
   min-width: 0;
 }
 
 .applicant-details p {
+  margin: 0;
   max-width: 860px;
 }
 
@@ -1739,15 +1959,19 @@ button {
 .application-image-card {
   display: grid;
   gap: 7px;
+  padding: 8px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: #ffffff;
   color: var(--blue);
   font-size: 12px;
   font-weight: 800;
+  text-decoration: none;
 }
 
 .application-image-card img {
   width: 100%;
   height: 92px;
-  border: 1px solid var(--line);
   border-radius: 8px;
   object-fit: cover;
   background: #edf2fa;
@@ -1919,6 +2143,7 @@ button {
   .client-booking-summary,
   .client-booking-details,
   .profile-quick-grid,
+  .profile-report-row,
   .booking-progress,
   .admin-detail-grid,
   .split-grid {

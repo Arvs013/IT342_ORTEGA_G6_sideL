@@ -13,6 +13,7 @@ public class UserFactory {
         user.setPhoneNumber(input.getPhoneNumber());
         user.setAddress(input.getAddress());
         user.setBio(input.getBio());
+        user.setProfileImageUrl(input.getProfileImageUrl());
         return user;
     }
 }

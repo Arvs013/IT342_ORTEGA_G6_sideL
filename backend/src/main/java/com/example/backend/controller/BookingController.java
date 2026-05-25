@@ -6,6 +6,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.time.LocalDateTime;
 import java.util.List;
 
 @RestController
@@ -57,6 +58,17 @@ public class BookingController {
                 return ResponseEntity.badRequest().body("Invalid booking status transition.");
             }
 
+            if ("IN_PROGRESS".equals(upperStatus) && booking.getDateStarted() == null) {
+                booking.setDateStarted(LocalDateTime.now());
+            }
+
+            if ("COMPLETED".equals(upperStatus) && booking.getDateFinished() == null) {
+                if (booking.getDateStarted() == null) {
+                    booking.setDateStarted(LocalDateTime.now());
+                }
+                booking.setDateFinished(LocalDateTime.now());
+            }
+
             booking.setStatus(upperStatus);
             return ResponseEntity.ok(bookingRepository.save(booking));
         }).orElse(ResponseEntity.notFound().build());
@@ -77,6 +89,10 @@ public class BookingController {
             }
 
             booking.setReceiptUrl(input.getReceiptUrl());
+            if (booking.getDateStarted() == null) {
+                booking.setDateStarted(LocalDateTime.now());
+            }
+            booking.setDateFinished(LocalDateTime.now());
             booking.setStatus("COMPLETED");
             return ResponseEntity.ok(bookingRepository.save(booking));
         }).orElse(ResponseEntity.notFound().build());

@@ -65,6 +65,9 @@ public class UserController {
             user.setPhoneNumber(input.getPhoneNumber());
             user.setAddress(input.getAddress());
             user.setBio(input.getBio());
+            if (input.getProfileImageUrl() != null) {
+                user.setProfileImageUrl(input.getProfileImageUrl());
+            }
             return ResponseEntity.ok(withoutPassword(repository.save(user)));
         }).orElse(ResponseEntity.notFound().build());
     }
@@ -78,6 +81,7 @@ public class UserController {
         safeUser.setPhoneNumber(user.getPhoneNumber());
         safeUser.setAddress(user.getAddress());
         safeUser.setBio(user.getBio());
+        safeUser.setProfileImageUrl(user.getProfileImageUrl());
         safeUser.setIsAdmin(user.getIsAdmin());
         safeUser.setIsProvider(user.getIsProvider());
         safeUser.setProviderStatus(user.getProviderStatus());
