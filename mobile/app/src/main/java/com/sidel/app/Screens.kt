@@ -1,9 +1,12 @@
 package com.sidel.app
 
+import android.app.DatePickerDialog
+import android.app.TimePickerDialog
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -41,6 +44,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.style.TextOverflow
@@ -52,9 +56,12 @@ import com.sidel.app.ui.theme.SideLTheme
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import java.net.URL
+import java.util.Calendar
 
 private val TextPrimary = Color(0xFF17202A)
 private val TextSecondary = Color(0xFF334155)
+private val BorderSoft = Color(0xFFE2E8F0)
+private val SurfaceSoft = Color(0xFFF8FAFB)
 
 @Composable
 fun SideLApp(
@@ -706,13 +713,13 @@ private fun MobileHomeCard(
         modifier = Modifier
             .fillMaxWidth()
             .verticalScroll(rememberScrollState()),
-        shape = RoundedCornerShape(12.dp),
+        shape = RoundedCornerShape(18.dp),
         colors = CardDefaults.cardColors(containerColor = Color.White),
-        elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
+        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
     ) {
         Column(
-            modifier = Modifier.padding(22.dp),
-            verticalArrangement = Arrangement.spacedBy(14.dp),
+            modifier = Modifier.padding(18.dp),
+            verticalArrangement = Arrangement.spacedBy(16.dp),
         ) {
             AppHeader(user = user, green = green)
 
@@ -887,20 +894,45 @@ private fun MobileHomeCard(
 
 @Composable
 private fun AppHeader(user: LoggedUser, green: Color) {
-    Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-        Text(
-            text = "sideL",
-            color = green,
-            style = MaterialTheme.typography.headlineLarge,
-            fontWeight = FontWeight.Black,
-        )
-        Text(
-            text = "Welcome, ${user.firstname}",
-            color = TextPrimary,
-            style = MaterialTheme.typography.titleLarge,
-            fontWeight = FontWeight.Bold,
-        )
-        Text(text = user.email, color = TextSecondary)
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.spacedBy(12.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Surface(
+            modifier = Modifier
+                .width(54.dp)
+                .height(54.dp),
+            shape = RoundedCornerShape(18.dp),
+            color = Color(0xFFE8F5F0),
+        ) {
+            Box(contentAlignment = Alignment.Center, modifier = Modifier.fillMaxSize()) {
+                Text("sL", color = green, fontWeight = FontWeight.Black, fontSize = 20.sp)
+            }
+        }
+        Column(verticalArrangement = Arrangement.spacedBy(2.dp), modifier = Modifier.weight(1f)) {
+            Text(
+                text = "sideL",
+                color = green,
+                style = MaterialTheme.typography.headlineMedium,
+                fontWeight = FontWeight.Black,
+            )
+            Text(
+                text = "Welcome, ${user.firstname}",
+                color = TextPrimary,
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.Bold,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+            )
+            Text(
+                text = user.email,
+                color = TextSecondary,
+                style = MaterialTheme.typography.bodyMedium,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+            )
+        }
     }
 }
 
@@ -958,7 +990,7 @@ private fun TabButton(
     if (selected) {
         Button(
             onClick = onClick,
-            modifier = modifier.height(44.dp),
+            modifier = modifier.height(40.dp),
             colors = ButtonDefaults.buttonColors(containerColor = green, contentColor = Color.White),
         ) {
             Text(text, fontWeight = FontWeight.Bold)
@@ -966,7 +998,7 @@ private fun TabButton(
     } else {
         OutlinedButton(
             onClick = onClick,
-            modifier = modifier.height(44.dp),
+            modifier = modifier.height(40.dp),
         ) {
             Text(text, color = TextPrimary, fontWeight = FontWeight.Bold)
         }
@@ -1116,13 +1148,13 @@ private fun BrowseTab(
             GigCarousel(
                 title = if (index == 0) "Recommended services" else "More services",
                 gigs = gigGroup,
-            green = green,
-            onOpenDetails = onOpenGigDetails,
-            onBook = onSelectGig,
-            onToggleLike = onToggleGigLike,
-        )
+                green = green,
+                onOpenDetails = onOpenGigDetails,
+                onBook = onSelectGig,
+                onToggleLike = onToggleGigLike,
+            )
+        }
     }
-}
 }
 
 @Composable
@@ -1151,7 +1183,7 @@ private fun GigCarousel(
                 GigCard(
                     gig = gig,
                     green = green,
-                    modifier = Modifier.width(282.dp),
+                    modifier = Modifier.width(252.dp),
                     onOpenDetails = { onOpenDetails(gig) },
                     onBook = { onBook(gig) },
                     onToggleLike = { onToggleLike(gig) },
@@ -1265,16 +1297,19 @@ private fun ProfileTab(
     onRefreshReports: () -> Unit,
     onLogout: () -> Unit,
 ) {
-    Surface(
+    Card(
         modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(10.dp),
-        color = Color(0xFFF8FAFB),
+        shape = RoundedCornerShape(16.dp),
+        colors = CardDefaults.cardColors(containerColor = Color.White),
+        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
     ) {
         Column(
-            modifier = Modifier.padding(14.dp),
+            modifier = Modifier
+                .border(1.dp, BorderSoft, RoundedCornerShape(16.dp))
+                .padding(14.dp),
             verticalArrangement = Arrangement.spacedBy(10.dp),
         ) {
-            Text("My profile", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+            Text("My profile", color = TextPrimary, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
             if (isEditing) {
                 OutlinedTextField(value = firstname, onValueChange = onFirstnameChange, label = { Text("First name") }, singleLine = true, modifier = Modifier.fillMaxWidth())
                 OutlinedTextField(value = lastname, onValueChange = onLastnameChange, label = { Text("Last name") }, singleLine = true, modifier = Modifier.fillMaxWidth())
@@ -1286,16 +1321,16 @@ private fun ProfileTab(
                     Button(
                         onClick = onSaveProfile,
                         modifier = Modifier.weight(1f),
-                        colors = ButtonDefaults.buttonColors(containerColor = green),
+                        colors = ButtonDefaults.buttonColors(containerColor = green, contentColor = Color.White),
                     ) {
-                        Text("Save")
+                        Text("Save", fontWeight = FontWeight.Bold)
                     }
                     OutlinedButton(onClick = onCancelEdit, modifier = Modifier.weight(1f)) {
                         Text("Cancel")
                     }
                 }
             } else {
-                Text("${user.firstname} ${user.lastname}", fontWeight = FontWeight.Bold)
+                Text("${user.firstname} ${user.lastname}", color = TextPrimary, style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
                 Text(user.email, color = TextSecondary)
                 if (user.phoneNumber.isNotBlank()) Text(user.phoneNumber, color = TextSecondary)
                 if (user.address.isNotBlank()) Text(user.address, color = TextSecondary)
@@ -1305,16 +1340,16 @@ private fun ProfileTab(
                 Button(
                     onClick = onStartEdit,
                     modifier = Modifier.fillMaxWidth(),
-                    colors = ButtonDefaults.buttonColors(containerColor = green),
+                    colors = ButtonDefaults.buttonColors(containerColor = green, contentColor = Color.White),
                 ) {
-                    Text("Edit profile")
+                    Text("Edit profile", fontWeight = FontWeight.Bold)
                 }
                 Button(
                     onClick = onOpenBookings,
                     modifier = Modifier.fillMaxWidth(),
-                    colors = ButtonDefaults.buttonColors(containerColor = green),
+                    colors = ButtonDefaults.buttonColors(containerColor = green, contentColor = Color.White),
                 ) {
-                    Text("My bookings")
+                    Text("My bookings", fontWeight = FontWeight.Bold)
                 }
                 OutlinedButton(onClick = onOpenProviderTools, modifier = Modifier.fillMaxWidth()) {
                     Text(if (user.isProvider) "Provider jobs" else "Apply as provider")
@@ -1550,17 +1585,21 @@ private fun ProviderGigForm(
         .map { it.trim() }
         .count { it.isNotBlank() }
 
-    Surface(
+    Card(
         modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(10.dp),
-        color = Color(0xFFE8F5F0),
+        shape = RoundedCornerShape(16.dp),
+        colors = CardDefaults.cardColors(containerColor = Color(0xFFE8F5F0)),
+        elevation = CardDefaults.cardElevation(defaultElevation = 1.dp),
     ) {
         Column(
-            modifier = Modifier.padding(14.dp),
+            modifier = Modifier
+                .border(1.dp, BorderSoft, RoundedCornerShape(16.dp))
+                .padding(14.dp),
             verticalArrangement = Arrangement.spacedBy(10.dp),
         ) {
             Text(
                 text = if (editingGigId == null) "Create gig" else "Edit gig",
+                color = TextPrimary,
                 style = MaterialTheme.typography.titleMedium,
                 fontWeight = FontWeight.Bold,
             )
@@ -1582,9 +1621,9 @@ private fun ProviderGigForm(
                 Button(
                     onClick = onSaveProviderGig,
                     modifier = Modifier.weight(1f),
-                    colors = ButtonDefaults.buttonColors(containerColor = green),
+                    colors = ButtonDefaults.buttonColors(containerColor = green, contentColor = Color.White),
                 ) {
-                    Text(if (editingGigId == null) "Create" else "Save")
+                    Text(if (editingGigId == null) "Create" else "Save", fontWeight = FontWeight.Bold)
                 }
                 OutlinedButton(onClick = onClearProviderGigForm, modifier = Modifier.weight(1f)) {
                     Text("Clear")
@@ -1632,16 +1671,19 @@ private fun ProviderGigCard(
     onEdit: () -> Unit,
     onDisable: () -> Unit,
 ) {
-    Surface(
+    Card(
         modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(10.dp),
-        color = Color(0xFFF8FAFB),
+        shape = RoundedCornerShape(14.dp),
+        colors = CardDefaults.cardColors(containerColor = Color.White),
+        elevation = CardDefaults.cardElevation(defaultElevation = 1.dp),
     ) {
         Column(
-            modifier = Modifier.padding(14.dp),
+            modifier = Modifier
+                .border(1.dp, BorderSoft, RoundedCornerShape(14.dp))
+                .padding(14.dp),
             verticalArrangement = Arrangement.spacedBy(8.dp),
         ) {
-            Text(gig.title, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+            Text(gig.title, color = TextPrimary, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
             Text(gig.description, color = TextSecondary, maxLines = 2, overflow = TextOverflow.Ellipsis)
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 RoleChip(text = gig.category.ifBlank { "Service" }, green = green)
@@ -1651,9 +1693,9 @@ private fun ProviderGigCard(
                 Button(
                     onClick = onEdit,
                     modifier = Modifier.weight(1f),
-                    colors = ButtonDefaults.buttonColors(containerColor = green),
+                    colors = ButtonDefaults.buttonColors(containerColor = green, contentColor = Color.White),
                 ) {
-                    Text("Edit")
+                    Text("Edit", fontWeight = FontWeight.Bold)
                 }
                 OutlinedButton(onClick = onDisable, modifier = Modifier.weight(1f)) {
                     Text("Disable")
@@ -1672,15 +1714,18 @@ private fun GigCard(
     onBook: () -> Unit,
     onToggleLike: () -> Unit,
 ) {
-    Surface(
+    Card(
         modifier = modifier
             .clickable(onClick = onOpenDetails),
-        shape = RoundedCornerShape(10.dp),
-        color = Color(0xFFF8FAFB),
+        shape = RoundedCornerShape(16.dp),
+        colors = CardDefaults.cardColors(containerColor = Color.White),
+        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
     ) {
         Column(
-            modifier = Modifier.padding(14.dp),
-            verticalArrangement = Arrangement.spacedBy(8.dp),
+            modifier = Modifier
+                .border(1.dp, BorderSoft, RoundedCornerShape(16.dp))
+                .padding(12.dp),
+            verticalArrangement = Arrangement.spacedBy(9.dp),
         ) {
             Row(
                 modifier = Modifier.fillMaxWidth(),
@@ -1725,6 +1770,7 @@ private fun GigCard(
                 text = gig.title,
                 style = MaterialTheme.typography.titleMedium,
                 fontWeight = FontWeight.Bold,
+                color = TextPrimary,
                 maxLines = 2,
                 overflow = TextOverflow.Ellipsis,
             )
@@ -1755,10 +1801,12 @@ private fun GigCard(
             }
             Button(
                 onClick = onBook,
-                modifier = Modifier.fillMaxWidth(),
-                colors = ButtonDefaults.buttonColors(containerColor = green)
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(42.dp),
+                colors = ButtonDefaults.buttonColors(containerColor = green, contentColor = Color.White)
             ) {
-                Text("Book service")
+                Text("Book service", fontWeight = FontWeight.Bold)
             }
         }
     }
@@ -1855,7 +1903,7 @@ private fun HeartButton(
     ) {
         Box(contentAlignment = Alignment.Center, modifier = Modifier.fillMaxSize()) {
             Text(
-                text = if (liked) "♥" else "♡",
+                text = if (liked) "\u2665" else "\u2661",
                 color = if (liked) Color(0xFFD92D4B) else green,
                 fontWeight = FontWeight.Black,
                 fontSize = 20.sp,
@@ -1953,6 +2001,36 @@ private fun BookingPanel(
     onCancelBooking: () -> Unit,
     onSubmitBooking: () -> Unit,
 ) {
+    val context = LocalContext.current
+    val calendar = remember { Calendar.getInstance() }
+    val openSchedulePicker = {
+        DatePickerDialog(
+            context,
+            { _, year, month, dayOfMonth ->
+                TimePickerDialog(
+                    context,
+                    { _, hourOfDay, minute ->
+                        val selected = String.format(
+                            "%04d-%02d-%02dT%02d:%02d:00",
+                            year,
+                            month + 1,
+                            dayOfMonth,
+                            hourOfDay,
+                            minute,
+                        )
+                        onBookingDateChange(selected)
+                    },
+                    calendar.get(Calendar.HOUR_OF_DAY),
+                    calendar.get(Calendar.MINUTE),
+                    false,
+                ).show()
+            },
+            calendar.get(Calendar.YEAR),
+            calendar.get(Calendar.MONTH),
+            calendar.get(Calendar.DAY_OF_MONTH),
+        ).show()
+    }
+
     Surface(
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(10.dp),
@@ -1968,17 +2046,38 @@ private fun BookingPanel(
                 fontWeight = FontWeight.Bold,
             )
             Text(
-                text = "Date format: 2026-05-24T10:00:00",
+                text = "Choose your preferred service date and time.",
                 color = TextSecondary,
                 style = MaterialTheme.typography.bodySmall,
             )
-            OutlinedTextField(
-                value = bookingDate,
-                onValueChange = onBookingDateChange,
-                label = { Text("Schedule") },
-                singleLine = true,
+            Surface(
                 modifier = Modifier.fillMaxWidth(),
-            )
+                shape = RoundedCornerShape(10.dp),
+                color = Color.White,
+            ) {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .border(1.dp, BorderSoft, RoundedCornerShape(10.dp))
+                        .padding(12.dp),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Column(modifier = Modifier.weight(1f)) {
+                        Text("Schedule", color = TextSecondary, style = MaterialTheme.typography.labelMedium)
+                        Text(
+                            text = formatBookingDateForDisplay(bookingDate).ifBlank { "No date selected" },
+                            color = TextPrimary,
+                            fontWeight = FontWeight.Bold,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
+                        )
+                    }
+                    OutlinedButton(onClick = openSchedulePicker) {
+                        Text(if (bookingDate.isBlank()) "Pick" else "Change")
+                    }
+                }
+            }
             OutlinedTextField(
                 value = bookingPhone,
                 onValueChange = onBookingPhoneChange,
@@ -2013,6 +2112,29 @@ private fun BookingPanel(
             }
         }
     }
+}
+
+private fun formatBookingDateForDisplay(value: String): String {
+    if (value.isBlank()) return ""
+    val parts = value.split("T")
+    if (parts.size != 2) return value
+    val dateParts = parts[0].split("-")
+    val timeParts = parts[1].split(":")
+    if (dateParts.size < 3 || timeParts.size < 2) return value
+
+    val year = dateParts[0]
+    val month = dateParts[1]
+    val day = dateParts[2]
+    val hour24 = timeParts[0].toIntOrNull() ?: return value
+    val minute = timeParts[1]
+    val suffix = if (hour24 >= 12) "PM" else "AM"
+    val hour12 = when {
+        hour24 == 0 -> 12
+        hour24 > 12 -> hour24 - 12
+        else -> hour24
+    }
+
+    return "$month/$day/$year ${hour12.toString().padStart(2, '0')}:$minute $suffix"
 }
 
 @Composable
@@ -2244,15 +2366,18 @@ private fun BookingCard(
     onReportDetailsChange: (String) -> Unit,
     onSubmitReport: () -> Unit,
 ) {
-    Surface(
+    Card(
         modifier = Modifier
             .fillMaxWidth()
             .clickable(onClick = onSelectBooking),
-        shape = RoundedCornerShape(10.dp),
-        color = Color(0xFFF8FAFB),
+        shape = RoundedCornerShape(16.dp),
+        colors = CardDefaults.cardColors(containerColor = Color.White),
+        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
     ) {
         Column(
-            modifier = Modifier.padding(14.dp),
+            modifier = Modifier
+                .border(1.dp, BorderSoft, RoundedCornerShape(16.dp))
+                .padding(14.dp),
             verticalArrangement = Arrangement.spacedBy(8.dp),
         ) {
             Row(
@@ -2262,18 +2387,19 @@ private fun BookingCard(
             ) {
                 Text(
                     text = booking.gigTitle,
+                    color = TextPrimary,
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.Bold,
                     modifier = Modifier.weight(1f),
                 )
-                RoleChip(text = booking.status.toStatusLabel(), green = green)
+                StatusChip(status = booking.status, green = green)
             }
             Text(
                 text = if (mode == BookingMode.Provider) "Client: ${booking.clientName}" else "Provider: ${booking.providerName}",
                 color = TextPrimary,
                 fontWeight = FontWeight.Bold,
             )
-            Text(text = "Schedule: ${booking.bookingDate}", color = TextSecondary)
+            Text(text = "Schedule: ${formatBookingDateForDisplay(booking.bookingDate).ifBlank { booking.bookingDate }}", color = TextSecondary)
             Text(text = "Phone: ${booking.contactPhone}", color = TextSecondary)
             Text(text = "Address: ${booking.serviceAddress}", color = TextSecondary)
             if (booking.clientNotes.isNotBlank()) {
@@ -2383,9 +2509,9 @@ private fun BookingDetailActions(
             Button(
                 onClick = onSubmitReceipt,
                 modifier = Modifier.fillMaxWidth(),
-                colors = ButtonDefaults.buttonColors(containerColor = green),
+                colors = ButtonDefaults.buttonColors(containerColor = green, contentColor = Color.White),
             ) {
-                Text("Submit receipt")
+                Text("Submit receipt", fontWeight = FontWeight.Bold)
             }
         }
         "COMPLETED" -> {
@@ -2410,9 +2536,9 @@ private fun BookingDetailActions(
             Button(
                 onClick = onSubmitReview,
                 modifier = Modifier.fillMaxWidth(),
-                colors = ButtonDefaults.buttonColors(containerColor = green),
+                colors = ButtonDefaults.buttonColors(containerColor = green, contentColor = Color.White),
             ) {
-                Text("Submit review")
+                Text("Submit review", fontWeight = FontWeight.Bold)
             }
         }
         "PENDING" -> Text(
@@ -2439,9 +2565,9 @@ private fun ProviderBookingActions(
             Button(
                 onClick = { onUpdateStatus(booking, "ACCEPTED") },
                 modifier = Modifier.weight(1f),
-                colors = ButtonDefaults.buttonColors(containerColor = green),
+                colors = ButtonDefaults.buttonColors(containerColor = green, contentColor = Color.White),
             ) {
-                Text("Accept")
+                Text("Accept", fontWeight = FontWeight.Bold)
             }
             OutlinedButton(
                 onClick = { onUpdateStatus(booking, "REJECTED") },
@@ -2453,16 +2579,16 @@ private fun ProviderBookingActions(
         "ACCEPTED" -> Button(
             onClick = { onUpdateStatus(booking, "IN_PROGRESS") },
             modifier = Modifier.fillMaxWidth(),
-            colors = ButtonDefaults.buttonColors(containerColor = green),
+            colors = ButtonDefaults.buttonColors(containerColor = green, contentColor = Color.White),
         ) {
-            Text("Start job")
+            Text("Start job", fontWeight = FontWeight.Bold)
         }
         "IN_PROGRESS" -> Button(
             onClick = { onUpdateStatus(booking, "COMPLETED") },
             modifier = Modifier.fillMaxWidth(),
-            colors = ButtonDefaults.buttonColors(containerColor = green),
+            colors = ButtonDefaults.buttonColors(containerColor = green, contentColor = Color.White),
         ) {
-            Text("Mark completed")
+            Text("Mark completed", fontWeight = FontWeight.Bold)
         }
     }
 }
@@ -2477,6 +2603,41 @@ private fun RoleChip(text: String, green: Color) {
             text = text,
             modifier = Modifier.padding(horizontal = 12.dp, vertical = 7.dp),
             color = green,
+            fontWeight = FontWeight.Bold,
+            style = MaterialTheme.typography.labelMedium,
+            textAlign = TextAlign.Center,
+        )
+    }
+}
+
+@Composable
+private fun StatusChip(status: String, green: Color) {
+    val normalized = status.uppercase()
+    val chipColor = when (normalized) {
+        "PENDING" -> Color(0xFFFFF7ED)
+        "ACCEPTED" -> Color(0xFFEFF6FF)
+        "IN_PROGRESS" -> Color(0xFFEEF2FF)
+        "COMPLETED" -> Color(0xFFE8F5F0)
+        "REJECTED", "CANCELLED" -> Color(0xFFFFECEF)
+        else -> Color(0xFFE8F5F0)
+    }
+    val textColor = when (normalized) {
+        "PENDING" -> Color(0xFFB45309)
+        "ACCEPTED" -> Color(0xFF1D4ED8)
+        "IN_PROGRESS" -> Color(0xFF4338CA)
+        "COMPLETED" -> green
+        "REJECTED", "CANCELLED" -> Color(0xFFD92D4B)
+        else -> green
+    }
+
+    Surface(
+        shape = RoundedCornerShape(100.dp),
+        color = chipColor,
+    ) {
+        Text(
+            text = status.toStatusLabel(),
+            modifier = Modifier.padding(horizontal = 12.dp, vertical = 7.dp),
+            color = textColor,
             fontWeight = FontWeight.Bold,
             style = MaterialTheme.typography.labelMedium,
             textAlign = TextAlign.Center,
