@@ -47,6 +47,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import com.sidel.app.ui.theme.SideLTheme
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -895,6 +896,7 @@ private fun AppHeader(user: LoggedUser, green: Color) {
         )
         Text(
             text = "Welcome, ${user.firstname}",
+            color = TextPrimary,
             style = MaterialTheme.typography.titleLarge,
             fontWeight = FontWeight.Bold,
         )
@@ -957,16 +959,16 @@ private fun TabButton(
         Button(
             onClick = onClick,
             modifier = modifier.height(44.dp),
-            colors = ButtonDefaults.buttonColors(containerColor = green),
+            colors = ButtonDefaults.buttonColors(containerColor = green, contentColor = Color.White),
         ) {
-            Text(text)
+            Text(text, fontWeight = FontWeight.Bold)
         }
     } else {
         OutlinedButton(
             onClick = onClick,
             modifier = modifier.height(44.dp),
         ) {
-            Text(text)
+            Text(text, color = TextPrimary, fontWeight = FontWeight.Bold)
         }
     }
 }
@@ -1081,6 +1083,7 @@ private fun BrowseTab(
         ) {
             Text(
                 text = "Available gigs",
+                color = TextPrimary,
                 style = MaterialTheme.typography.titleMedium,
                 fontWeight = FontWeight.Bold,
             )
@@ -1134,6 +1137,7 @@ private fun GigCarousel(
     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
         Text(
             text = title,
+            color = TextPrimary,
             style = MaterialTheme.typography.titleSmall,
             fontWeight = FontWeight.Bold,
         )
@@ -1220,16 +1224,16 @@ private fun CategoryButton(
         Button(
             onClick = onClick,
             modifier = modifier.height(40.dp),
-            colors = ButtonDefaults.buttonColors(containerColor = green),
+            colors = ButtonDefaults.buttonColors(containerColor = green, contentColor = Color.White),
         ) {
-            Text(category, textAlign = TextAlign.Center)
+            Text(category, textAlign = TextAlign.Center, fontWeight = FontWeight.Bold)
         }
     } else {
         OutlinedButton(
             onClick = onClick,
             modifier = modifier.height(40.dp),
         ) {
-            Text(category, textAlign = TextAlign.Center)
+            Text(category, color = TextPrimary, textAlign = TextAlign.Center, fontWeight = FontWeight.Bold)
         }
     }
 }
@@ -1703,7 +1707,7 @@ private fun GigCard(
                 }
                 RoleChip(text = gig.category.ifBlank { "Service" }, green = green)
             }
-            GigImage(imageUrl = gig.imageUrl, label = gig.category, green = green)
+            GigImageCarousel(imageUrls = gig.imageUrls, label = gig.category, green = green)
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
@@ -1715,9 +1719,7 @@ private fun GigCard(
                     style = MaterialTheme.typography.labelMedium,
                     fontWeight = FontWeight.Bold,
                 )
-                OutlinedButton(onClick = onToggleLike) {
-                    Text(if (gig.likedByCurrentUser) "Liked" else "Heart")
-                }
+                HeartButton(liked = gig.likedByCurrentUser, green = green, onClick = onToggleLike)
             }
             Text(
                 text = gig.title,
@@ -1796,6 +1798,7 @@ private fun GigDetailsPanel(
                     Text("Close")
                 }
             }
+            GigImageCarousel(imageUrls = gig.imageUrls, label = gig.category, green = green)
             Text(text = gig.title, fontWeight = FontWeight.Bold)
             Text(text = gig.description, color = TextSecondary)
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -1822,12 +1825,42 @@ private fun GigDetailsPanel(
             ) {
                 Text("Book this provider")
             }
-            OutlinedButton(onClick = onToggleLike, modifier = Modifier.fillMaxWidth()) {
-                Text(if (gig.likedByCurrentUser) "Remove heart" else "Heart this gig")
-            }
+            HeartButton(
+                liked = gig.likedByCurrentUser,
+                green = green,
+                onClick = onToggleLike,
+                modifier = Modifier.align(Alignment.End),
+            )
             OutlinedButton(onClick = onReportProvider, modifier = Modifier.fillMaxWidth()) {
                 Text("Report provider")
             }
+        }
+    }
+}
+
+@Composable
+private fun HeartButton(
+    liked: Boolean,
+    green: Color,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    Surface(
+        modifier = modifier
+            .width(42.dp)
+            .height(34.dp)
+            .clickable(onClick = onClick),
+        shape = RoundedCornerShape(100.dp),
+        color = if (liked) Color(0xFFFFECEF) else Color(0xFFE8F5F0),
+    ) {
+        Box(contentAlignment = Alignment.Center, modifier = Modifier.fillMaxSize()) {
+            Text(
+                text = if (liked) "♥" else "♡",
+                color = if (liked) Color(0xFFD92D4B) else green,
+                fontWeight = FontWeight.Black,
+                fontSize = 20.sp,
+                textAlign = TextAlign.Center,
+            )
         }
     }
 }
@@ -1983,6 +2016,66 @@ private fun BookingPanel(
 }
 
 @Composable
+private fun GigImageCarousel(imageUrls: List<String>, label: String, green: Color) {
+    var currentIndex by remember(imageUrls) { mutableStateOf(0) }
+    val safeImages = imageUrls.filter { it.isNotBlank() }.take(5)
+    val currentImage = safeImages.getOrNull(currentIndex).orEmpty()
+
+    Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+        GigImage(imageUrl = currentImage, label = label, green = green)
+        if (safeImages.size > 1) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                ImageArrowButton(
+                    onClick = { currentIndex = (currentIndex - 1 + safeImages.size) % safeImages.size },
+                    text = "<",
+                    green = green,
+                )
+                Text(
+                    text = "${currentIndex + 1}/${safeImages.size}",
+                    color = TextSecondary,
+                    fontWeight = FontWeight.Bold,
+                    textAlign = TextAlign.Center,
+                    modifier = Modifier
+                        .weight(0.7f)
+                        .padding(horizontal = 8.dp),
+                )
+                ImageArrowButton(
+                    onClick = { currentIndex = (currentIndex + 1) % safeImages.size },
+                    text = ">",
+                    green = green,
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun ImageArrowButton(onClick: () -> Unit, text: String, green: Color) {
+    Surface(
+        modifier = Modifier
+            .width(42.dp)
+            .height(34.dp)
+            .clickable(onClick = onClick),
+        shape = RoundedCornerShape(100.dp),
+        color = Color(0xFFE8F5F0),
+    ) {
+        Box(contentAlignment = Alignment.Center, modifier = Modifier.fillMaxSize()) {
+            Text(
+                text = text,
+                color = green,
+                fontWeight = FontWeight.Black,
+                fontSize = 18.sp,
+                textAlign = TextAlign.Center,
+            )
+        }
+    }
+}
+
+@Composable
 private fun GigImage(imageUrl: String, label: String, green: Color) {
     var bitmap by remember(imageUrl) { mutableStateOf<Bitmap?>(null) }
     var failed by remember(imageUrl) { mutableStateOf(false) }
@@ -2021,9 +2114,9 @@ private fun GigImage(imageUrl: String, label: String, green: Color) {
             )
         } else {
             Box(contentAlignment = Alignment.Center, modifier = Modifier.fillMaxSize()) {
-                Text(
-                    text = if (failed) "Image unavailable" else label.ifBlank { "Service" },
-                    color = green,
+            Text(
+                text = if (failed) "Image unavailable" else label.ifBlank { "Service" },
+                color = green,
                     fontWeight = FontWeight.Bold,
                     textAlign = TextAlign.Center,
                     modifier = Modifier.padding(12.dp),

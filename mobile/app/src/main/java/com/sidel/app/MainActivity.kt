@@ -96,7 +96,7 @@ class MainActivity : ComponentActivity() {
         restoreSession()
 
         setContent {
-            SideLTheme(dynamicColor = false) {
+            SideLTheme(darkTheme = false, dynamicColor = false) {
                 Surface(modifier = Modifier.fillMaxSize()) {
                     SideLApp(
                         authScreen = authScreen,
@@ -576,7 +576,7 @@ class MainActivity : ComponentActivity() {
         providerGigDescription = gig.description
         providerGigCategory = gig.category.ifBlank { "Electrical" }
         providerGigPrice = if (gig.price == 0.0) "" else gig.price.toInt().toString()
-        providerGigImageUrl = gig.imageUrl
+        providerGigImageUrl = gig.imageUrls.joinToString("\n")
         message = ""
     }
 
@@ -1111,6 +1111,7 @@ class MainActivity : ComponentActivity() {
         return List(length()) { index ->
             val gigJson = getJSONObject(index)
             val providerJson = gigJson.optJSONObject("provider")
+            val imageUrls = gigJson.imageUrls(origin)
             val providerName = listOfNotNull(
                 providerJson?.optString("firstname")?.takeIf { it.isNotBlank() },
                 providerJson?.optString("lastname")?.takeIf { it.isNotBlank() },
@@ -1126,24 +1127,26 @@ class MainActivity : ComponentActivity() {
                 likedByCurrentUser = gigJson.optBoolean("likedByCurrentUser", false),
                 providerId = providerJson?.optInt("userID") ?: 0,
                 providerName = providerName,
-                imageUrl = gigJson.firstImageUrl(origin),
+                imageUrl = imageUrls.firstOrNull().orEmpty(),
+                imageUrls = imageUrls,
             )
         }
     }
 
-    private fun JSONObject.firstImageUrl(origin: String): String {
+    private fun JSONObject.imageUrls(origin: String): List<String> {
         val rawImages = optString("imageUrls").ifBlank { optString("image") }
-        val firstImage = rawImages
+        return rawImages
             .split("\n", ",", ";")
             .map { it.trim() }
-            .firstOrNull { it.isNotBlank() }
-            .orEmpty()
-
-        return when {
-            firstImage.startsWith("/uploads/") -> "$origin$firstImage"
-            firstImage.startsWith("http://") || firstImage.startsWith("https://") -> firstImage
-            else -> ""
-        }
+            .filter { it.isNotBlank() }
+            .take(5)
+            .mapNotNull { image ->
+                when {
+                    image.startsWith("/uploads/") -> "$origin$image"
+                    image.startsWith("http://") || image.startsWith("https://") -> image
+                    else -> null
+                }
+            }
     }
 
     private fun JSONArray.toBookingList(): List<Booking> {
