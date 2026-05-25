@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import { clearAuthSession, getAuthHeaders } from "../utils/auth";
 import "../styles/dashboard.css";
 
@@ -338,9 +338,6 @@ const AdminDashboard = () => {
             <p className="dashboard-kicker">Admin dashboard</p>
             <h2>Welcome, {admin?.firstname || "Admin"}</h2>
           </div>
-          <Link className="secondary-inline" to="/dashboard">
-            View user dashboard
-          </Link>
         </header>
 
         {loading && <p className="status-line">Loading admin dashboard...</p>}

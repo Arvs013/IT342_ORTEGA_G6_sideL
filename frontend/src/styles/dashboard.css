@@ -386,7 +386,9 @@ button {
   gap: 14px;
   min-height: 72px;
   padding: 12px 0;
-  background: var(--soft);
+  border-bottom: 1px solid rgba(220, 227, 234, 0.78);
+  background: rgba(245, 247, 250, 0.94);
+  backdrop-filter: blur(12px);
 }
 
 .header-brand {
@@ -461,6 +463,12 @@ button {
   border-radius: 8px;
   background: #ffffff;
   color: var(--ink);
+}
+
+.dashboard-search input:focus {
+  border-color: var(--green);
+  box-shadow: 0 0 0 4px rgba(22, 113, 95, 0.1);
+  outline: none;
 }
 
 .header-actions {
@@ -580,7 +588,7 @@ button {
   align-items: flex-end;
   justify-content: space-between;
   gap: 18px;
-  padding: 14px 0 6px;
+  padding: 18px 0 10px;
 }
 
 .marketplace-tools h1 {
@@ -658,10 +666,15 @@ button {
 .primary-action,
 .gig-form button,
 .card-footer button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   padding: 0 18px;
   background: var(--green);
   color: #ffffff;
   text-decoration: none;
+  line-height: 1;
+  text-align: center;
 }
 
 .primary-action:hover,
@@ -801,7 +814,8 @@ button {
   display: grid;
   gap: 14px;
   padding: 18px;
-  border: 1px solid var(--line);
+  border: 1px solid #d7e2dd;
+  border-left: 4px solid var(--green);
   border-radius: 8px;
   background: #ffffff;
   box-shadow: 0 10px 22px rgba(23, 32, 42, 0.04);
@@ -1081,7 +1095,7 @@ button {
   align-items: center;
   gap: 14px;
   padding: 14px;
-  border: 1px solid var(--line);
+  border: 1px solid #d7e2dd;
   border-radius: 8px;
   background: #ffffff;
   box-shadow: 0 10px 22px rgba(23, 32, 42, 0.04);
@@ -1184,7 +1198,7 @@ button {
 .gig-grid {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: 14px;
+  gap: 16px;
 }
 
 .gig-card {
@@ -1193,8 +1207,8 @@ button {
   flex-direction: column;
   justify-content: space-between;
   min-height: 220px;
-  padding: 18px;
-  border: 1px solid var(--line);
+  padding: 16px;
+  border: 1px solid #d7e2dd;
   border-radius: 8px;
   background: #ffffff;
   box-shadow: 0 14px 28px rgba(23, 32, 42, 0.06);
@@ -1203,11 +1217,11 @@ button {
 
 .marketplace-card {
   min-height: 280px;
-  padding-top: 74px;
+  padding-top: 72px;
 }
 
 .gig-card:hover {
-  border-color: #c9d4dd;
+  border-color: #b7d3c9;
   box-shadow: 0 18px 34px rgba(23, 32, 42, 0.09);
   transform: translateY(-2px);
 }
@@ -1219,6 +1233,7 @@ button {
   height: 190px;
   overflow: hidden;
   border-radius: 8px;
+  border: 1px solid #e2ebe7;
   background: #eef3f0;
 }
 
@@ -1260,24 +1275,32 @@ button {
 
 .image-carousel-controls button,
 .image-carousel-controls span {
-  min-height: 30px;
+  min-height: 32px;
   border: 0;
   border-radius: 999px;
-  background: rgba(23, 32, 42, 0.76);
+  background: rgba(23, 32, 42, 0.78);
   color: #ffffff;
-  font-size: 12px;
+  font-size: 14px;
   font-weight: 900;
+  box-shadow: 0 8px 18px rgba(23, 32, 42, 0.22);
 }
 
 .image-carousel-controls button {
-  padding: 0 10px;
+  display: grid;
+  width: 34px;
+  height: 34px;
+  place-items: center;
+  padding: 0;
   pointer-events: auto;
 }
 
 .image-carousel-controls span {
   display: inline-flex;
   align-items: center;
+  min-width: 46px;
+  justify-content: center;
   padding: 0 10px;
+  font-size: 12px;
 }
 
 .saved-image-preview {
@@ -1310,6 +1333,7 @@ button {
   color: var(--muted);
   font-size: 20px;
   line-height: 1;
+  box-shadow: 0 10px 20px rgba(23, 32, 42, 0.09);
 }
 
 .heart-button small {
@@ -1401,12 +1425,14 @@ button {
   gap: 10px;
   max-width: calc(100% - 72px);
   min-height: 42px;
-  padding: 0;
-  border: 0;
-  background: transparent;
+  padding: 5px 8px 5px 5px;
+  border: 1px solid rgba(215, 226, 221, 0.9);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.94);
   color: var(--ink);
   text-align: left;
   cursor: pointer;
+  box-shadow: 0 10px 20px rgba(23, 32, 42, 0.08);
 }
 
 .provider-card-avatar {
@@ -1814,6 +1840,9 @@ button {
 }
 
 .secondary-inline {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   min-height: 42px;
   padding: 0 18px;
   border: 1px solid var(--line);
@@ -1821,6 +1850,9 @@ button {
   background: #ffffff;
   color: var(--ink);
   font-weight: 800;
+  line-height: 1;
+  text-align: center;
+  text-decoration: none;
 }
 
 .danger-inline {

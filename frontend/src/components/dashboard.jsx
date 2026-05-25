@@ -1125,11 +1125,11 @@ const Dashboard = () => {
                       {gigImages.length > 1 && (
                         <div className="image-carousel-controls">
                           <button type="button" onClick={() => changeGigImage(gig.gigID, gigImages.length, -1)}>
-                            Prev
+                            &lt;
                           </button>
                           <span>{activeImageIndex + 1}/{gigImages.length}</span>
                           <button type="button" onClick={() => changeGigImage(gig.gigID, gigImages.length, 1)}>
-                            Next
+                            &gt;
                           </button>
                         </div>
                       )}
@@ -1209,11 +1209,11 @@ const Dashboard = () => {
                       {images.length > 1 && (
                         <div className="image-carousel-controls">
                           <button type="button" onClick={() => changeGigImage(selectedGig.gigID, images.length, -1)}>
-                            Prev
+                            &lt;
                           </button>
                           <span>{activeIndex + 1}/{images.length}</span>
                           <button type="button" onClick={() => changeGigImage(selectedGig.gigID, images.length, 1)}>
-                            Next
+                            &gt;
                           </button>
                         </div>
                       )}
