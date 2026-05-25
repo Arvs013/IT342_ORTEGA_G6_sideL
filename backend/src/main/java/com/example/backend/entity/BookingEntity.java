@@ -41,6 +41,12 @@ public class BookingEntity {
     @Column(name = "receipt_url")
     private String receiptUrl;
 
+    @Column(name = "date_started")
+    private LocalDateTime dateStarted;
+
+    @Column(name = "date_finished")
+    private LocalDateTime dateFinished;
+
     // Statuses: "PENDING", "ACCEPTED", "IN_PROGRESS", "REJECTED", "COMPLETED", "CANCELLED"
     @Column(nullable = false, length = 20)
     private String status = "PENDING";
@@ -79,6 +85,12 @@ public class BookingEntity {
 
     public String getReceiptUrl() { return receiptUrl; }
     public void setReceiptUrl(String receiptUrl) { this.receiptUrl = receiptUrl; }
+
+    public LocalDateTime getDateStarted() { return dateStarted; }
+    public void setDateStarted(LocalDateTime dateStarted) { this.dateStarted = dateStarted; }
+
+    public LocalDateTime getDateFinished() { return dateFinished; }
+    public void setDateFinished(LocalDateTime dateFinished) { this.dateFinished = dateFinished; }
 
     public String getStatus() { return status; }
     public void setStatus(String status) { this.status = status; }

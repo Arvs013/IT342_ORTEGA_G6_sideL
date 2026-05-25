@@ -4,13 +4,9 @@ import { clearAuthSession, getAuthHeaders } from "../utils/auth";
 import "../styles/dashboard.css";
 
 const API_BASE_URL = "http://localhost:8080/api";
-const API_ORIGIN = API_BASE_URL.replace("/api", "");
 
 const historyStatuses = ["COMPLETED", "CANCELLED", "REJECTED"];
 const bookingStatusSteps = ["PENDING", "ACCEPTED", "IN_PROGRESS", "COMPLETED"];
-
-const getImageSource = (image) =>
-  image?.startsWith("/uploads/") ? `${API_ORIGIN}${image}` : image;
 
 const getStatusClass = (status = "") => {
   const normalized = status.toUpperCase();
@@ -21,6 +17,31 @@ const getStatusClass = (status = "") => {
 };
 
 const formatStatus = (status = "") => status.replace(/_/g, " ");
+
+const formatBookingDateTime = (value, fallback = "No schedule") => {
+  if (!value) return fallback;
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return value;
+
+  return date.toLocaleString("en-US", {
+    month: "2-digit",
+    day: "2-digit",
+    year: "numeric",
+    hour: "numeric",
+    minute: "2-digit",
+    hour12: true,
+  });
+};
+
+const sortNewestBookings = (bookingList = []) =>
+  [...bookingList].sort((a, b) => {
+    const first = new Date(a.bookingDate || a.createdAt || 0).getTime();
+    const second = new Date(b.bookingDate || b.createdAt || 0).getTime();
+    return second - first;
+  });
+
+const getUserName = (person, fallback = "User") =>
+  `${person?.firstname || ""} ${person?.lastname || ""}`.trim() || fallback;
 
 const getStepClass = (bookingStatus, step) => {
   const status = bookingStatus || "";
@@ -36,7 +57,6 @@ const ClientBookings = () => {
   const navigate = useNavigate();
   const [user, setUser] = useState(null);
   const [bookings, setBookings] = useState([]);
-  const [receiptFiles, setReceiptFiles] = useState({});
   const [reviewForms, setReviewForms] = useState({});
   const [reportModal, setReportModal] = useState(null);
   const [reportForm, setReportForm] = useState({ reason: "Issue with service", details: "" });
@@ -66,28 +86,6 @@ const ClientBookings = () => {
     return data;
   }, []);
 
-  const uploadReceipt = useCallback(async (file) => {
-    const formData = new FormData();
-    formData.append("images", file);
-
-    const response = await fetch(`${API_BASE_URL}/uploads/images`, {
-      method: "POST",
-      headers: getAuthHeaders(),
-      body: formData,
-    });
-
-    const contentType = response.headers.get("content-type") || "";
-    const data = contentType.includes("application/json")
-      ? await response.json()
-      : await response.text();
-
-    if (!response.ok) {
-      throw new Error(typeof data === "string" ? data : data.message || "Upload failed");
-    }
-
-    return data[0];
-  }, []);
-
   const loadBookings = useCallback(async (currentUser) => {
     if (!currentUser?.userID) return;
 
@@ -96,7 +94,7 @@ const ClientBookings = () => {
 
     try {
       const clientBookings = await request(`/bookings/client/${currentUser.userID}`);
-      setBookings(clientBookings);
+      setBookings(sortNewestBookings(clientBookings));
     } catch (err) {
       setError(err.message || "Could not load bookings.");
     } finally {
@@ -139,29 +137,6 @@ const ClientBookings = () => {
       setMessage("Booking cancelled.");
     } catch (err) {
       setError(err.message || "Unable to cancel booking.");
-    }
-  };
-
-  const submitReceipt = async (bookingId) => {
-    const file = receiptFiles[bookingId];
-    if (!file) {
-      setError("Please choose a receipt image first.");
-      return;
-    }
-
-    try {
-      setError("");
-      setMessage("");
-      const receiptUrl = await uploadReceipt(file);
-      await request(`/bookings/${bookingId}/receipt`, {
-        method: "PUT",
-        body: JSON.stringify({ receiptUrl }),
-      });
-      setReceiptFiles((current) => ({ ...current, [bookingId]: null }));
-      await loadBookings(user);
-      setMessage("Receipt submitted and booking moved to history.");
-    } catch (err) {
-      setError(err.message || "Unable to submit receipt.");
     }
   };
 
@@ -243,7 +218,6 @@ const ClientBookings = () => {
     const canReview = isHistory && booking.status === "COMPLETED" && booking.gig?.gigID;
     const reviewForm = reviewForms[booking.bookingID] || { rating: 5, comment: "" };
     const statusLabel = isAccepted ? "SCHEDULED" : isInProgress ? "IN PROGRESS" : booking.status;
-    const hasReceiptFile = Boolean(receiptFiles[booking.bookingID]);
 
     return (
       <article className="client-booking-card" key={booking.bookingID}>
@@ -255,18 +229,18 @@ const ClientBookings = () => {
             </div>
             <h4>{booking.gig?.title || "Booked service"}</h4>
           </div>
-          <strong>{booking.bookingDate ? new Date(booking.bookingDate).toLocaleString() : "No schedule"}</strong>
+          <strong>{formatBookingDateTime(booking.bookingDate)}</strong>
         </div>
 
         <div className="client-booking-details">
-          <p><span>Provider</span><strong>{booking.gig?.provider?.firstname || "Provider"} {booking.gig?.provider?.lastname || ""}</strong></p>
+          <p><span>Booking</span><strong>#{booking.bookingID}</strong></p>
+          <p><span>Client name</span><strong>{getUserName(booking.client || user, "Client")}</strong></p>
+          <p><span>Provider name</span><strong>{getUserName(booking.gig?.provider, "Provider")}</strong></p>
+          <p><span>Status</span><strong>{statusLabel}</strong></p>
           <p><span>Address</span><strong>{booking.serviceAddress || "No address provided"}</strong></p>
+          <p><span>Date started</span><strong>{formatBookingDateTime(booking.dateStarted, "Not started yet")}</strong></p>
+          <p><span>Date finished</span><strong>{formatBookingDateTime(booking.dateFinished, "Not finished yet")}</strong></p>
           {booking.clientNotes && <p className="wide-field"><span>Notes</span><strong>{booking.clientNotes}</strong></p>}
-          {booking.receiptUrl && (
-            <a className="application-link" href={getImageSource(booking.receiptUrl)} target="_blank" rel="noreferrer">
-              View receipt
-            </a>
-          )}
         </div>
 
         <div className="booking-progress" aria-label={`Booking status ${formatStatus(booking.status)}`}>
@@ -280,27 +254,9 @@ const ClientBookings = () => {
         {!isHistory && (
           <div className="client-booking-actions">
             {(isAccepted || isInProgress) && (
-              <label className="receipt-upload">
-                <span>Receipt image</span>
-                <input
-                  type="file"
-                  accept="image/*"
-                  onChange={(event) => setReceiptFiles({
-                    ...receiptFiles,
-                    [booking.bookingID]: event.target.files?.[0] || null,
-                  })}
-                />
-              </label>
-            )}
-            {(isAccepted || isInProgress) && (
-              <button
-                className="primary-action compact-action"
-                type="button"
-                disabled={!hasReceiptFile}
-                onClick={() => submitReceipt(booking.bookingID)}
-              >
-                Submit receipt
-              </button>
+              <span className="status-chip info-status">
+                Provider will update this job as work starts and finishes.
+              </span>
             )}
             {booking.status !== "COMPLETED" && (
               <button className="secondary-inline" type="button" onClick={() => cancelBooking(booking.bookingID)}>

@@ -4,6 +4,7 @@ import { clearAuthSession, getAuthHeaders } from "../utils/auth";
 import "../styles/dashboard.css";
 
 const API_BASE_URL = "http://localhost:8080/api";
+const API_ORIGIN = API_BASE_URL.replace("/api", "");
 
 const emptyProfile = {
   firstname: "",
@@ -12,14 +13,45 @@ const emptyProfile = {
   phoneNumber: "",
   address: "",
   bio: "",
+  profileImageUrl: "",
 };
 
 const valueOrEmpty = (value) => value || "Not added yet";
 
+const getImageSource = (image) =>
+  image?.startsWith("/uploads/") ? `${API_ORIGIN}${image}` : image;
+
+const formatStatus = (status = "") => status.replace(/_/g, " ");
+
+const getStatusClass = (status = "") => {
+  const normalized = status.toUpperCase();
+  if (["ACTIVE", "APPROVED", "COMPLETED", "RESOLVED"].includes(normalized)) return "success-status";
+  if (["DISABLED", "REJECTED", "CANCELLED"].includes(normalized)) return "danger-status";
+  if (["OPEN", "PENDING"].includes(normalized)) return "warning-status";
+  return "info-status";
+};
+
+const formatDateTime = (value) => {
+  if (!value) return "No date";
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return value;
+
+  return date.toLocaleString("en-US", {
+    month: "2-digit",
+    day: "2-digit",
+    year: "numeric",
+    hour: "numeric",
+    minute: "2-digit",
+    hour12: true,
+  });
+};
+
 const MyProfile = () => {
   const navigate = useNavigate();
   const [user, setUser] = useState(null);
+  const [reports, setReports] = useState([]);
   const [profileForm, setProfileForm] = useState(emptyProfile);
+  const [profileImageFile, setProfileImageFile] = useState(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
@@ -60,8 +92,12 @@ const MyProfile = () => {
 
     const loadProfile = async () => {
       try {
-        const freshUser = await request(`/users/${parsedUser.userID}`);
+        const [freshUser, userReports] = await Promise.all([
+          request(`/users/${parsedUser.userID}`),
+          request(`/reports/user/${parsedUser.userID}`),
+        ]);
         setUser(freshUser);
+        setReports(userReports);
         setProfileForm({
           firstname: freshUser.firstname || "",
           lastname: freshUser.lastname || "",
@@ -69,6 +105,7 @@ const MyProfile = () => {
           phoneNumber: freshUser.phoneNumber || "",
           address: freshUser.address || "",
           bio: freshUser.bio || "",
+          profileImageUrl: freshUser.profileImageUrl || "",
         });
         localStorage.setItem("loggedUser", JSON.stringify(freshUser));
       } catch (err) {
@@ -95,12 +132,37 @@ const MyProfile = () => {
     setMessage("");
 
     try {
+      let profileImageUrl = profileForm.profileImageUrl;
+
+      if (profileImageFile) {
+        const formData = new FormData();
+        formData.append("images", profileImageFile);
+
+        const uploadResponse = await fetch(`${API_BASE_URL}/uploads/images`, {
+          method: "POST",
+          headers: getAuthHeaders(),
+          body: formData,
+        });
+        const uploadContentType = uploadResponse.headers.get("content-type") || "";
+        const uploadData = uploadContentType.includes("application/json")
+          ? await uploadResponse.json()
+          : await uploadResponse.text();
+
+        if (!uploadResponse.ok) {
+          throw new Error(typeof uploadData === "string" ? uploadData : uploadData.message || "Upload failed");
+        }
+
+        profileImageUrl = uploadData[0];
+      }
+
       const updatedUser = await request(`/users/${user.userID}`, {
         method: "PUT",
-        body: JSON.stringify(profileForm),
+        body: JSON.stringify({ ...profileForm, profileImageUrl }),
       });
 
       setUser(updatedUser);
+      setProfileForm((current) => ({ ...current, profileImageUrl: updatedUser.profileImageUrl || "" }));
+      setProfileImageFile(null);
       localStorage.setItem("loggedUser", JSON.stringify(updatedUser));
       setMessage("Profile updated successfully.");
     } catch (err) {
@@ -142,7 +204,11 @@ const MyProfile = () => {
           <>
             <div className="my-profile-hero">
               <div className="my-profile-avatar" aria-hidden="true">
-                {initials}
+                {user?.profileImageUrl ? (
+                  <img src={getImageSource(user.profileImageUrl)} alt="" />
+                ) : (
+                  initials
+                )}
               </div>
               <div className="my-profile-title">
                 <p className="dashboard-kicker">My Profile</p>
@@ -263,6 +329,18 @@ const MyProfile = () => {
                 </label>
 
                 <label className="wide-field">
+                  Profile photo
+                  <input
+                    type="file"
+                    accept="image/*"
+                    onChange={(event) => setProfileImageFile(event.target.files?.[0] || null)}
+                  />
+                  <span className="field-hint">
+                    {profileImageFile ? profileImageFile.name : profileForm.profileImageUrl ? "Current photo saved" : "Upload one clear profile photo."}
+                  </span>
+                </label>
+
+                <label className="wide-field">
                   {isProvider ? "Provider description" : "About me"}
                   <textarea
                     placeholder={isProvider ? "Describe your skills, service area, and experience." : "Add a short profile note."}
@@ -278,6 +356,55 @@ const MyProfile = () => {
                 </div>
               </form>
             </div>
+
+            <section className="profile-report-card">
+              <div className="section-heading">
+                <div>
+                  <p className="dashboard-kicker">Report center</p>
+                  <h2>Reports and admin status</h2>
+                </div>
+                <span className="status-chip">{reports.length} reports</span>
+              </div>
+
+              <div className="profile-report-list">
+                {reports.map((report) => {
+                  const reportedByMe = report.reporter?.userID === user?.userID;
+                  const otherUser = reportedByMe ? report.reportedUser : report.reporter;
+
+                  return (
+                    <article className="profile-report-row" key={report.reportID}>
+                      <div>
+                        <div className="inline-pills">
+                          <span className="pill">{reportedByMe ? "Submitted" : "Received"}</span>
+                          <span className={`status-chip ${getStatusClass(report.status)}`}>
+                            {formatStatus(report.status)}
+                          </span>
+                        </div>
+                        <h4>{report.reason}</h4>
+                        <p>{report.details}</p>
+                      </div>
+                      <div className="profile-report-meta">
+                        <p>
+                          <span>{reportedByMe ? "Reported user" : "Reporter"}</span>
+                          <strong>{otherUser?.firstname || "User"} {otherUser?.lastname || ""}</strong>
+                        </p>
+                        <p>
+                          <span>Submitted</span>
+                          <strong>{formatDateTime(report.createdAt)}</strong>
+                        </p>
+                      </div>
+                    </article>
+                  );
+                })}
+              </div>
+
+              {!reports.length && (
+                <div className="dashboard-empty-state">
+                  <h4>No reports yet</h4>
+                  <p>Reports you submit or receive will appear here with admin review status.</p>
+                </div>
+              )}
+            </section>
           </>
         )}
       </section>

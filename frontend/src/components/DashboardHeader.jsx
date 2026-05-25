@@ -1,6 +1,11 @@
 import React from "react";
 import { Link } from "react-router-dom";
 
+const API_ORIGIN = "http://localhost:8080";
+
+const getImageSource = (image) =>
+  image?.startsWith("/uploads/") ? `${API_ORIGIN}${image}` : image;
+
 const DashboardHeader = ({
   user,
   providerStatus,
@@ -40,7 +45,11 @@ const DashboardHeader = ({
         <div className="profile-menu">
           <button className="profile-summary" type="button">
             <div className="profile-avatar" aria-hidden="true">
-              {initials.toUpperCase()}
+              {user?.profileImageUrl ? (
+                <img src={getImageSource(user.profileImageUrl)} alt="" />
+              ) : (
+                initials.toUpperCase()
+              )}
             </div>
             <div>
               <strong>{user?.firstname}</strong>

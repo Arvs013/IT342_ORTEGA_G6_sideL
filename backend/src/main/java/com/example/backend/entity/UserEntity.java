@@ -33,6 +33,9 @@ public class UserEntity {
     @Column(columnDefinition = "TEXT")
     private String bio;
 
+    @Column(name = "profile_image_url")
+    private String profileImageUrl;
+
     // --- Marketplace Fields ---
 
     @Column(name = "is_admin", nullable = false)
@@ -89,6 +92,9 @@ public class UserEntity {
 
     public String getBio() { return bio; }
     public void setBio(String bio) { this.bio = bio; }
+
+    public String getProfileImageUrl() { return profileImageUrl; }
+    public void setProfileImageUrl(String profileImageUrl) { this.profileImageUrl = profileImageUrl; }
 
     public Boolean getIsAdmin() { return isAdmin; }
     public void setIsAdmin(Boolean isAdmin) { this.isAdmin = isAdmin; }

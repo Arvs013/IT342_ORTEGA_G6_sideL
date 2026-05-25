@@ -92,6 +92,7 @@ public class ServiceController {
         response.put("phoneNumber", provider.getPhoneNumber());
         response.put("address", provider.getAddress());
         response.put("bio", provider.getBio());
+        response.put("profileImageUrl", provider.getProfileImageUrl());
         response.put("providerStatus", provider.getProviderStatus());
         return response;
     }
